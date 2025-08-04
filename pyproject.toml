@@ -1,0 +1,10 @@
+[project]
+name = "slotplanner"
+version = "0.1.0"
+description = "A lightweight desktop app for weekly time slot planning using constraint optimization. Designed for schools or similar settings to assign children to available teachers or therapists with customizable preferences, tandem rules, and PDF export."
+readme = "README.md"
+authors = [
+    { name = "wkeram" }
+    ]
+requires-python = ">=3.13"
+dependencies = []
