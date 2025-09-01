@@ -23,6 +23,36 @@ uv run main.py
 uv run main.py
 ```
 
+### Testing Commands
+```bash
+# Run all tests
+uv run python tests/test_runner.py all
+
+# Run only optimizer tests (no UI required)
+uv run python tests/test_runner.py optimizer
+
+# Run with coverage reporting
+uv run python tests/test_runner.py coverage
+
+# Run fast tests (development cycle)
+uv run python tests/test_runner.py fast
+
+# Check CI/CD readiness
+uv run python scripts/check-status.py
+```
+
+### Code Quality
+```bash
+# Format code
+uv run black app/ tests/
+
+# Lint code
+uv run ruff check app/ tests/
+
+# Type checking
+uv run mypy app/
+```
+
 ## Requirements
 
 Functional requirements and planned or implemented features are documented in `README.md`. Those requirements always need to be respected when implementing new features!

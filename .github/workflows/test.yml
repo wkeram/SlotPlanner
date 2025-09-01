@@ -1,0 +1,283 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.13"]
+        include:
+          # Test additional Python versions on Ubuntu only
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest  
+            python-version: "3.11"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+        uv add pytest-xvfb  # For headless UI testing on Linux
+
+    - name: Setup virtual display (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0
+        export QT_QPA_PLATFORM=offscreen
+
+    - name: Run optimizer tests
+      run: |
+        uv run python tests/test_runner.py optimizer
+      env:
+        QT_QPA_PLATFORM: offscreen
+
+    - name: Run fast integration tests (no UI)
+      run: |
+        uv run pytest tests/ -m "not ui and not slow" --tb=short -v
+      env:
+        QT_QPA_PLATFORM: offscreen
+
+    - name: Run UI tests (Linux with Xvfb)
+      if: runner.os == 'Linux'
+      run: |
+        xvfb-run -a uv run python tests/test_runner.py ui
+      env:
+        QT_QPA_PLATFORM: xcb
+
+    - name: Run UI tests (Windows/macOS)
+      if: runner.os != 'Linux'
+      run: |
+        uv run python tests/test_runner.py ui
+      continue-on-error: true  # UI tests may fail on headless runners
+
+    - name: Generate test report
+      if: always()
+      run: |
+        uv run pytest tests/ --junitxml=test-results-${{ matrix.os }}-py${{ matrix.python-version }}.xml --tb=short
+      env:
+        QT_QPA_PLATFORM: offscreen
+      continue-on-error: true
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: test-results-*.xml
+        retention-days: 30
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+        uv add coverage[toml] pytest-cov
+
+    - name: Setup virtual display
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0
+
+    - name: Run tests with coverage
+      run: |
+        uv run pytest tests/ --cov=app --cov-report=xml --cov-report=html --cov-report=term-missing --tb=short
+      env:
+        QT_QPA_PLATFORM: offscreen
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/
+        retention-days: 30
+
+  performance:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run performance tests
+      run: |
+        uv run python tests/test_runner.py performance
+      env:
+        QT_QPA_PLATFORM: offscreen
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-results
+        path: performance-*.json
+        retention-days: 30
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run security scan with bandit
+      run: |
+        uv add bandit[toml]
+        uv run bandit -r app/ -f json -o security-report.json
+      continue-on-error: true
+
+    - name: Run dependency vulnerability check
+      run: |
+        uv add safety
+        uv run safety check --json --output vulnerability-report.json
+      continue-on-error: true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          security-report.json
+          vulnerability-report.json
+        retention-days: 30
+
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [test, coverage, performance, security]
+    if: always()
+
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+
+    - name: Generate test summary
+      run: |
+        echo "# Test Results Summary" > test-summary.md
+        echo "" >> test-summary.md
+        echo "## Test Matrix Results" >> test-summary.md
+        echo "" >> test-summary.md
+        
+        for dir in test-results-*/; do
+          if [ -d "$dir" ]; then
+            echo "- $dir: " >> test-summary.md
+            if [ -f "$dir"/*.xml ]; then
+              echo "  - Tests completed" >> test-summary.md
+            else
+              echo "  - Tests failed or incomplete" >> test-summary.md
+            fi
+          fi
+        done
+        
+        echo "" >> test-summary.md
+        echo "## Coverage Report" >> test-summary.md
+        if [ -d "coverage-report/" ]; then
+          echo "- Coverage report generated successfully" >> test-summary.md
+        else
+          echo "- Coverage report not available" >> test-summary.md
+        fi
+        
+        echo "" >> test-summary.md
+        echo "## Security Scan" >> test-summary.md
+        if [ -d "security-reports/" ]; then
+          echo "- Security scan completed" >> test-summary.md
+        else
+          echo "- Security scan not available" >> test-summary.md
+        fi
+        
+        cat test-summary.md
+
+    - name: Upload test summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-summary
+        path: test-summary.md
+        retention-days: 30
+
+    - name: Create status check
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('test-summary.md', 'utf8');
+          
+          github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Test Results Summary',
+            head_sha: context.payload.pull_request.head.sha,
+            status: 'completed',
+            conclusion: '${{ needs.test.result == 'success' && needs.coverage.result == 'success' && 'success' || 'failure' }}',
+            output: {
+              title: 'Test Results Summary',
+              summary: summary
+            }
+          });

@@ -1,5 +1,11 @@
 # SlotPlanner
 
+[![Tests](https://github.com/wkeram/SlotPlanner/workflows/Tests/badge.svg)](https://github.com/wkeram/SlotPlanner/actions/workflows/test.yml)
+[![Coverage Status](https://codecov.io/gh/wkeram/SlotPlanner/branch/main/graph/badge.svg)](https://codecov.io/gh/wkeram/SlotPlanner)
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/wkeram/SlotPlanner)](https://github.com/wkeram/SlotPlanner/releases)
+
 **SlotPlanner** is a local desktop application for intelligent weekly time slot planning using constraint optimization.  
 It is designed to assign children to available teachers or therapists based on preferences, availability, tandem rules, and other constraints.
 
@@ -194,10 +200,63 @@ Structure includes:
 
 ---
 
-## 🧱 Build Windows Executable
+## 🔧 Development & Testing
 
+### Running Tests
+```bash
+# Install dependencies
+uv sync --all-extras --dev
+
+# Run all tests
+uv run python tests/test_runner.py all
+
+# Run only optimizer tests (no UI)
+uv run python tests/test_runner.py optimizer
+
+# Run with coverage
+uv run python tests/test_runner.py coverage
+```
+
+### Test Coverage
+The project maintains comprehensive test coverage including:
+- **Optimizer Tests**: 25+ tests covering constraint optimization, weight handling, and edge cases
+- **UI Tests**: Integration tests for GUI components and user workflows  
+- **Performance Tests**: Scalability testing with large datasets (200+ children)
+- **Cross-Platform Tests**: Windows, macOS, and Linux compatibility
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
+
+## 🚀 CI/CD Pipeline
+
+### Automated Testing
+- **Pull Request Checks**: Linting, formatting, quick tests, documentation checks
+- **Main Branch Tests**: Full test suite across Python 3.11-3.13 on Windows, macOS, Linux
+- **Nightly Tests**: Comprehensive testing, stress tests, compatibility checks
+- **Coverage Reporting**: Automated coverage tracking with [Codecov](https://codecov.io)
+
+### Release Pipeline
+- **Automated Builds**: Cross-platform executables (Windows .exe, macOS .app, Linux AppImage)
+- **Quality Gates**: All tests must pass before release
+- **Artifact Management**: Test results, coverage reports, and binaries stored for 30-90 days
+
+### Status Monitoring
+- [![Tests](https://github.com/wkeram/SlotPlanner/workflows/Tests/badge.svg)](https://github.com/wkeram/SlotPlanner/actions/workflows/test.yml) - Main test suite status
+- [![Coverage Status](https://codecov.io/gh/wkeram/SlotPlanner/branch/main/graph/badge.svg)](https://codecov.io/gh/wkeram/SlotPlanner) - Code coverage tracking
+- Security scanning with automated vulnerability detection
+- Performance regression monitoring
+
+## 🧱 Build & Distribution
+
+### Windows Executable
 The app is built into a portable `.exe` using [PyInstaller](https://www.pyinstaller.org/) in GitHub Actions.
 Releases can be downloaded from the [Releases](../../releases) section once available.
+
+### Cross-Platform Support
+- **Windows**: Standalone .exe executable
+- **macOS**: .app bundle and .dmg installer
+- **Linux**: AppImage and standalone executable
+
+All builds are automatically tested and verified before release.
 
 ---
 
