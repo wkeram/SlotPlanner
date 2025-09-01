@@ -71,7 +71,7 @@ jobs:
     - name: Setup virtual display
       run: |
         sudo apt-get update
-        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libegl1-mesa libxcb-xinerama0
+        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libegl1-mesa-dev libxcb-xinerama0
 
     - name: Run fast tests
       run: |
