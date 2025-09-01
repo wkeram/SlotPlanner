@@ -23,9 +23,9 @@ def get_translations(message_key: str) -> str:
     # Default translations for key messages
     default_translations = {
         "invalid_teacher_name": "Invalid teacher name. Please enter a valid name.",
-        "invalid_time_range": "Invalid time range. Time slots must be at least 45 minutes and end time must be after start time."
+        "invalid_time_range": "Invalid time range. Time slots must be at least 45 minutes and end time must be after start time.",
     }
-    
+
     language_key = "en"  # Default language
     try:
         with open("app/config/translations.json", "r", encoding="utf-8") as f:
@@ -36,7 +36,7 @@ def get_translations(message_key: str) -> str:
         return default_translations.get(message_key, f"Missing translation: {message_key}")
 
 
-def show_error(message: str, parent: Optional['QWidget'] = None) -> None:
+def show_error(message: str, parent: Optional["QWidget"] = None) -> None:
     """Display an error message dialog in a pop-up.
 
     Args:

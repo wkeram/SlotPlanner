@@ -14,8 +14,9 @@ class TestCICDValidation:
         """Test that core modules can be imported."""
         try:
             import app.storage
-            import app.logic  
+            import app.logic
             import app.gui
+
             assert True, "Core modules imported successfully"
         except ImportError as e:
             pytest.fail(f"Failed to import core modules: {e}")
@@ -27,12 +28,12 @@ class TestCICDValidation:
     def test_project_structure(self):
         """Test that project structure is correct."""
         project_root = Path(__file__).parent.parent
-        
+
         # Check required directories
         assert (project_root / "app").exists(), "app directory should exist"
         assert (project_root / "tests").exists(), "tests directory should exist"
         assert (project_root / ".github" / "workflows").exists(), "workflows directory should exist"
-        
+
         # Check required files
         assert (project_root / "pyproject.toml").exists(), "pyproject.toml should exist"
         assert (project_root / "README.md").exists(), "README.md should exist"
@@ -41,14 +42,9 @@ class TestCICDValidation:
     def test_workflow_files(self):
         """Test that GitHub Actions workflow files exist."""
         workflows_dir = Path(__file__).parent.parent / ".github" / "workflows"
-        
-        required_workflows = [
-            "test.yml",
-            "release.yml",
-            "pr-checks.yml", 
-            "nightly.yml"
-        ]
-        
+
+        required_workflows = ["test.yml", "release.yml", "pr-checks.yml", "nightly.yml"]
+
         for workflow in required_workflows:
             workflow_path = workflows_dir / workflow
             assert workflow_path.exists(), f"Workflow {workflow} should exist"
@@ -57,12 +53,12 @@ class TestCICDValidation:
     def test_test_infrastructure(self):
         """Test that test infrastructure is properly set up."""
         tests_dir = Path(__file__).parent
-        
+
         # Check test runner
         assert (tests_dir / "test_runner.py").exists(), "test_runner.py should exist"
         assert (tests_dir / "conftest.py").exists(), "conftest.py should exist"
         assert (tests_dir / "README.md").exists(), "tests/README.md should exist"
-        
+
         # Check test directories
         assert (tests_dir / "optimizer").exists(), "optimizer test directory should exist"
         assert (tests_dir / "ui").exists(), "ui test directory should exist"
@@ -70,10 +66,10 @@ class TestCICDValidation:
     def test_configuration_files(self):
         """Test that configuration files are present."""
         project_root = Path(__file__).parent.parent
-        
+
         # Check pytest configuration
         assert (project_root / "pytest.ini").exists(), "pytest.ini should exist"
-        
+
         # Check coverage configuration
         assert (project_root / ".coveragerc").exists(), ".coveragerc should exist"
 
@@ -86,6 +82,7 @@ class TestCICDValidation:
             import ortools
             import PySide6
             import reportlab
+
             assert True, "Key dependencies are available"
         except ImportError as e:
             pytest.skip(f"Dependencies not fully installed: {e}")
@@ -94,6 +91,6 @@ class TestCICDValidation:
         """Test that status monitoring script exists."""
         scripts_dir = Path(__file__).parent.parent / "scripts"
         status_script = scripts_dir / "check-status.py"
-        
+
         assert status_script.exists(), "Status monitoring script should exist"
         assert status_script.stat().st_size > 0, "Status monitoring script should not be empty"

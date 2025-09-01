@@ -10,73 +10,37 @@ from pathlib import Path
 
 def run_optimizer_tests():
     """Run only optimizer tests."""
-    return pytest.main([
-        "tests/optimizer/",
-        "-v",
-        "-m", "optimizer or not ui",
-        "--tb=short"
-    ])
+    return pytest.main(["tests/optimizer/", "-v", "-m", "optimizer or not ui", "--tb=short"])
 
 
 def run_ui_tests():
     """Run only UI tests (requires display)."""
-    return pytest.main([
-        "tests/ui/",
-        "-v", 
-        "-m", "ui",
-        "--tb=short"
-    ])
+    return pytest.main(["tests/ui/", "-v", "-m", "ui", "--tb=short"])
 
 
 def run_all_tests():
     """Run all tests."""
-    return pytest.main([
-        "tests/",
-        "-v",
-        "--tb=short"
-    ])
+    return pytest.main(["tests/", "-v", "--tb=short"])
 
 
 def run_fast_tests():
     """Run fast tests only (excluding slow performance tests)."""
-    return pytest.main([
-        "tests/",
-        "-v",
-        "-m", "not slow and not performance",
-        "--tb=short"
-    ])
+    return pytest.main(["tests/", "-v", "-m", "not slow and not performance", "--tb=short"])
 
 
 def run_integration_tests():
     """Run integration tests only."""
-    return pytest.main([
-        "tests/",
-        "-v",
-        "-m", "integration",
-        "--tb=short"
-    ])
+    return pytest.main(["tests/", "-v", "-m", "integration", "--tb=short"])
 
 
 def run_performance_tests():
     """Run performance tests only."""
-    return pytest.main([
-        "tests/",
-        "-v",
-        "-m", "performance",
-        "--tb=long"
-    ])
+    return pytest.main(["tests/", "-v", "-m", "performance", "--tb=long"])
 
 
 def run_tests_with_coverage():
     """Run tests with coverage reporting."""
-    return pytest.main([
-        "tests/",
-        "-v",
-        "--cov=app",
-        "--cov-report=html",
-        "--cov-report=term-missing",
-        "--tb=short"
-    ])
+    return pytest.main(["tests/", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missing", "--tb=short"])
 
 
 def main():
@@ -86,15 +50,15 @@ def main():
         print("Commands:")
         print("  optimizer    - Run optimizer tests only")
         print("  ui           - Run UI tests only")
-        print("  fast         - Run fast tests (no performance tests)")  
+        print("  fast         - Run fast tests (no performance tests)")
         print("  integration  - Run integration tests only")
         print("  performance  - Run performance tests only")
         print("  coverage     - Run tests with coverage")
         print("  all          - Run all tests")
         return 1
-    
+
     command = sys.argv[1].lower()
-    
+
     if command == "optimizer":
         return run_optimizer_tests()
     elif command == "ui":

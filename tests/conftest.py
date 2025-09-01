@@ -42,19 +42,19 @@ def minimal_test_data():
                     "tuesday": ["08:00", "09:00"],
                     "wednesday": [],
                     "thursday": ["14:00", "15:00"],
-                    "friday": ["08:00"]
-                }
+                    "friday": ["08:00"],
+                },
             },
             "Teacher_B": {
-                "name": "Teacher B", 
+                "name": "Teacher B",
                 "availability": {
                     "monday": ["10:00", "11:00"],
                     "tuesday": ["08:00", "09:00", "10:00"],
                     "wednesday": ["14:00"],
                     "thursday": [],
-                    "friday": ["08:00", "09:00"]
-                }
-            }
+                    "friday": ["08:00", "09:00"],
+                },
+            },
         },
         "children": {
             "Child_1": {
@@ -64,9 +64,9 @@ def minimal_test_data():
                     "tuesday": ["08:00", "09:00", "10:00"],
                     "wednesday": ["14:00"],
                     "thursday": ["14:00", "15:00"],
-                    "friday": ["08:00", "09:00"]
+                    "friday": ["08:00", "09:00"],
                 },
-                "preferred_teachers": ["Teacher A"]
+                "preferred_teachers": ["Teacher A"],
             },
             "Child_2": {
                 "name": "Child 2",
@@ -75,9 +75,9 @@ def minimal_test_data():
                     "tuesday": ["08:00", "09:00"],
                     "wednesday": [],
                     "thursday": ["14:00"],
-                    "friday": ["08:00", "09:00"]
+                    "friday": ["08:00", "09:00"],
                 },
-                "preferred_teachers": ["Teacher B"]
+                "preferred_teachers": ["Teacher B"],
             },
             "Child_3": {
                 "name": "Child 3",
@@ -86,18 +86,13 @@ def minimal_test_data():
                     "tuesday": ["10:00"],
                     "wednesday": ["14:00"],
                     "thursday": ["15:00"],
-                    "friday": ["08:00"]
+                    "friday": ["08:00"],
                 },
-                "preferred_teachers": []
-            }
+                "preferred_teachers": [],
+            },
         },
         "tandems": {},
-        "weights": {
-            "teacher_preference": 0.5,
-            "early_time": 0.3,
-            "tandem_fulfillment": 0.7,
-            "stability": 0.4
-        }
+        "weights": {"teacher_preference": 0.5, "early_time": 0.3, "tandem_fulfillment": 0.7, "stability": 0.4},
     }
 
 
@@ -113,8 +108,8 @@ def tandem_test_data():
                     "tuesday": ["08:00", "09:00"],
                     "wednesday": [],
                     "thursday": ["14:00", "15:00"],
-                    "friday": []
-                }
+                    "friday": [],
+                },
             },
             "Teacher_B": {
                 "name": "Teacher B",
@@ -123,9 +118,9 @@ def tandem_test_data():
                     "tuesday": ["08:00", "09:00", "10:00"],
                     "wednesday": ["14:00", "15:00"],
                     "thursday": [],
-                    "friday": ["08:00", "09:00"]
-                }
-            }
+                    "friday": ["08:00", "09:00"],
+                },
+            },
         },
         "children": {
             "Child_A": {
@@ -135,56 +130,44 @@ def tandem_test_data():
                     "tuesday": ["08:00", "09:00"],
                     "wednesday": [],
                     "thursday": ["14:00", "15:00"],
-                    "friday": []
+                    "friday": [],
                 },
-                "preferred_teachers": ["Teacher A"]
+                "preferred_teachers": ["Teacher A"],
             },
             "Child_B": {
-                "name": "Child B", 
+                "name": "Child B",
                 "availability": {
                     "monday": ["09:00", "10:00", "11:00"],
                     "tuesday": ["08:00"],
                     "wednesday": [],
                     "thursday": ["14:00", "15:00"],
-                    "friday": []
+                    "friday": [],
                 },
-                "preferred_teachers": ["Teacher A"]
+                "preferred_teachers": ["Teacher A"],
             },
             "Child_C": {
                 "name": "Child C",
                 "availability": {
                     "monday": ["14:00"],
                     "tuesday": ["10:00"],
-                    "wednesday": ["14:00", "15:00"], 
+                    "wednesday": ["14:00", "15:00"],
                     "thursday": [],
-                    "friday": ["08:00", "09:00"]
+                    "friday": ["08:00", "09:00"],
                 },
-                "preferred_teachers": ["Teacher B"]
-            }
+                "preferred_teachers": ["Teacher B"],
+            },
         },
-        "tandems": {
-            "Tandem_AB": {
-                "name": "Tandem AB",
-                "child1": "Child A", 
-                "child2": "Child B",
-                "priority": 1
-            }
-        },
-        "weights": {
-            "teacher_preference": 0.6,
-            "early_time": 0.4,
-            "tandem_fulfillment": 0.8,
-            "stability": 0.3
-        }
+        "tandems": {"Tandem_AB": {"name": "Tandem AB", "child1": "Child A", "child2": "Child B", "priority": 1}},
+        "weights": {"teacher_preference": 0.6, "early_time": 0.4, "tandem_fulfillment": 0.8, "stability": 0.3},
     }
 
 
-@pytest.fixture 
+@pytest.fixture
 def complex_test_data():
     """Complex test dataset with multiple constraints."""
     teachers = {}
     children = {}
-    
+
     # Create 10 teachers with varied availability
     for i in range(10):
         teacher_name = f"Teacher_{i:02d}"
@@ -195,15 +178,15 @@ def complex_test_data():
                 "tuesday": ["08:00", "09:00", "10:00"] if i < 5 else ["14:00", "15:00"],
                 "wednesday": ["14:00"] if i % 3 == 0 else [],
                 "thursday": ["08:00", "09:00"] if i % 4 == 0 else ["15:00"],
-                "friday": ["08:00", "09:00", "10:00"] if i < 3 else []
-            }
+                "friday": ["08:00", "09:00", "10:00"] if i < 3 else [],
+            },
         }
-    
+
     # Create 25 children with varied preferences and availability
     for i in range(25):
         child_name = f"Child_{i:02d}"
         preferred_teachers = [f"Teacher_{j:02d}" for j in range(min(i % 3 + 1, 10)) if j < 10]
-        
+
         children[child_name] = {
             "name": f"Child {i:02d}",
             "availability": {
@@ -211,21 +194,16 @@ def complex_test_data():
                 "tuesday": ["08:00", "09:00"] if i % 3 == 0 else ["10:00", "14:00", "15:00"],
                 "wednesday": ["14:00"] if i % 7 == 0 else [],
                 "thursday": ["08:00", "09:00", "15:00"] if i % 4 != 0 else [],
-                "friday": ["08:00", "09:00"] if i < 10 else ["10:00"]
+                "friday": ["08:00", "09:00"] if i < 10 else ["10:00"],
             },
-            "preferred_teachers": preferred_teachers
+            "preferred_teachers": preferred_teachers,
         }
-    
+
     return {
         "teachers": teachers,
         "children": children,
         "tandems": {},
-        "weights": {
-            "teacher_preference": 0.7,
-            "early_time": 0.5,
-            "tandem_fulfillment": 0.6,
-            "stability": 0.4
-        }
+        "weights": {"teacher_preference": 0.7, "early_time": 0.5, "tandem_fulfillment": 0.6, "stability": 0.4},
     }
 
 
@@ -241,19 +219,13 @@ def edge_case_data():
                     "tuesday": [],
                     "wednesday": ["14:00"],  # Only one slot available
                     "thursday": [],
-                    "friday": []
-                }
+                    "friday": [],
+                },
             },
             "No_Availability_Teacher": {
-                "name": "No Availability Teacher", 
-                "availability": {
-                    "monday": [],
-                    "tuesday": [],
-                    "wednesday": [],
-                    "thursday": [],
-                    "friday": []
-                }
-            }
+                "name": "No Availability Teacher",
+                "availability": {"monday": [], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
+            },
         },
         "children": {
             "Conflicted_Child": {
@@ -263,9 +235,9 @@ def edge_case_data():
                     "tuesday": [],
                     "wednesday": [],
                     "thursday": [],
-                    "friday": []
+                    "friday": [],
                 },
-                "preferred_teachers": ["Single Slot Teacher"]
+                "preferred_teachers": ["Single Slot Teacher"],
             },
             "Impossible_Child": {
                 "name": "Impossible Child",
@@ -274,18 +246,13 @@ def edge_case_data():
                     "tuesday": [],
                     "wednesday": [],
                     "thursday": [],
-                    "friday": []  # No availability at all
+                    "friday": [],  # No availability at all
                 },
-                "preferred_teachers": []
-            }
+                "preferred_teachers": [],
+            },
         },
         "tandems": {},
-        "weights": {
-            "teacher_preference": 1.0,
-            "early_time": 0.0,
-            "tandem_fulfillment": 0.0,
-            "stability": 0.0
-        }
+        "weights": {"teacher_preference": 1.0, "early_time": 0.0, "tandem_fulfillment": 0.0, "stability": 0.0},
     }
 
 
@@ -301,30 +268,25 @@ def zero_weights_data():
                     "tuesday": [],
                     "wednesday": [],
                     "thursday": [],
-                    "friday": []
-                }
+                    "friday": [],
+                },
             }
         },
         "children": {
             "Child_1": {
-                "name": "Child 1", 
+                "name": "Child 1",
                 "availability": {
                     "monday": ["08:00", "09:00"],
                     "tuesday": [],
                     "wednesday": [],
                     "thursday": [],
-                    "friday": []
+                    "friday": [],
                 },
-                "preferred_teachers": ["Teacher A"]
+                "preferred_teachers": ["Teacher A"],
             }
         },
         "tandems": {},
-        "weights": {
-            "teacher_preference": 0.0,
-            "early_time": 0.0,
-            "tandem_fulfillment": 0.0,
-            "stability": 0.0
-        }
+        "weights": {"teacher_preference": 0.0, "early_time": 0.0, "tandem_fulfillment": 0.0, "stability": 0.0},
     }
 
 

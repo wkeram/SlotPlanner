@@ -68,22 +68,22 @@ def refresh_children_table(window: QWidget, data: dict) -> None:
     for row, (name, info) in enumerate(children.items()):
         # Name
         table.setItem(row, 0, QTableWidgetItem(name))
-        
+
         # Early preference
         early_pref = "Yes" if info.get("early_preference", False) else "No"
         table.setItem(row, 1, QTableWidgetItem(early_pref))
-        
+
         # Preferred teachers
         preferred = ", ".join(info.get("preferred_teachers", []))
         table.setItem(row, 2, QTableWidgetItem(preferred))
-        
+
         # Availability
         availability = info.get("availability", {})
         avail_text = []
         for day, slots in availability.items():
             slot_text = ", ".join(f"{start}–{end}" for start, end in slots)
             avail_text.append(f"{day}: {slot_text}")
-        
+
         item = QTableWidgetItem("\n".join(avail_text))
         item.setTextAlignment(Qt.AlignTop)
         table.setItem(row, 3, item)
@@ -112,13 +112,13 @@ def refresh_tandems_table(window: QWidget, data: dict) -> None:
     for row, (name, info) in enumerate(tandems.items()):
         # Tandem name
         table.setItem(row, 0, QTableWidgetItem(name))
-        
+
         # Child 1
         table.setItem(row, 1, QTableWidgetItem(info.get("child1", "")))
-        
+
         # Child 2
         table.setItem(row, 2, QTableWidgetItem(info.get("child2", "")))
-        
+
         # Priority
         priority = str(info.get("priority", 5))
         table.setItem(row, 3, QTableWidgetItem(priority))
