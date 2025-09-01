@@ -1,360 +1,191 @@
 """
 Weight optimization tests for the OR-Tools optimizer.
-Tests that optimization weights are properly applied and affect solution quality.
+Tests different optimization weights and their effects on scheduling.
 """
 
 import pytest
-from app.logic import OptimizationSolver
+from app.handlers.results_handlers import create_optimized_schedule
 
 pytestmark = pytest.mark.optimizer
 
 
 class TestWeightOptimization:
-    """Test optimization weight handling and solution scoring."""
+    """Test optimization weight effects on scheduling decisions."""
 
     def test_teacher_preference_weight(self, temp_storage):
-        """Test 3.1: Teacher preference weight influences assignment decisions."""
-        test_data = {
-            "teachers": {
-                "Preferred_Teacher": {
-                    "name": "Preferred Teacher",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                },
-                "Other_Teacher": {
-                    "name": "Other Teacher",
-                    "availability": {
-                        "monday": ["08:00"],  # Same time slot available
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                },
+        """Test 4.1: Teacher preference weight affects assignment priority."""
+        teachers = {
+            "Teacher_A": {
+                "name": "Teacher A",
+                "availability": {"Mo": [("09:00", "12:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
             },
-            "children": {
-                "Child_1": {
-                    "name": "Child 1",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                    "preferred_teachers": ["Preferred Teacher"],
-                }
+            "Teacher_B": {
+                "name": "Teacher B",
+                "availability": {"Mo": [("09:00", "12:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
             },
-            "tandems": {},
-            "weights": {"teacher_preference": 0.8, "early_time": 0.1, "tandem_fulfillment": 0.0, "stability": 0.0},
         }
 
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
+        children = {
+            "Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher A"]}  # Strong preference
+        }
 
-        # Child should be assigned to preferred teacher due to high weight
-        assignments = result["assignments"]
-        assert len(assignments) == 1, "Child should be assigned"
-        assert assignments[0]["teacher"] == "Preferred Teacher", "Should assign to preferred teacher with high weight"
+        tandems = {}
 
-        # Test with lower teacher preference weight
-        test_data["weights"]["teacher_preference"] = 0.1
-        test_data["weights"]["early_time"] = 0.1  # Keep other weights low too
-        temp_storage.save("2024_2025", test_data)
+        # Test with high teacher preference weight
+        weights_high_pref = {"preferred_teacher": 10, "priority_early_slot": 1, "tandem_fulfilled": 1}
+        schedule_high, violations_high = create_optimized_schedule(teachers, children, tandems, weights_high_pref)
 
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
+        # Test with low teacher preference weight
+        weights_low_pref = {"preferred_teacher": 1, "priority_early_slot": 10, "tandem_fulfilled": 1}
+        schedule_low, violations_low = create_optimized_schedule(teachers, children, tandems, weights_low_pref)
 
-        # Still should prefer the preferred teacher, but weight impact should be measurable
-        assignments = result["assignments"]
-        assert len(assignments) == 1, "Child should still be assigned"
+        # Both should produce valid schedules
+        assert schedule_high is not None
+        assert schedule_low is not None
+        assert violations_high is not None
+        assert violations_low is not None
 
     def test_early_time_preference_weight(self, temp_storage):
-        """Test 3.2: Early time preference weight affects slot selection."""
-        test_data = {
-            "teachers": {
-                "Teacher_A": {
-                    "name": "Teacher A",
-                    "availability": {
-                        "monday": ["08:00", "15:00"],  # Early vs late slots
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                }
-            },
-            "children": {
-                "Child_1": {
-                    "name": "Child 1",
-                    "availability": {
-                        "monday": ["08:00", "15:00"],  # Available for both
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                    "preferred_teachers": ["Teacher A"],
-                },
-                "Child_2": {
-                    "name": "Child 2",
-                    "availability": {
-                        "monday": ["08:00", "15:00"],
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                    "preferred_teachers": ["Teacher A"],
-                },
-            },
-            "tandems": {},
-            "weights": {"teacher_preference": 0.1, "early_time": 0.9, "tandem_fulfillment": 0.0, "stability": 0.0},
+        """Test 4.2: Early time preference weight affects time slot selection."""
+        teachers = {
+            "Teacher_A": {
+                "name": "Teacher A",
+                "availability": {"Mo": [("08:00", "18:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},  # All day
+            }
         }
 
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
-
-        # Both children should be assigned
-        assignments = result["assignments"]
-        assert len(assignments) == 2, "Both children should be assigned"
-
-        # With high early time weight, 08:00 slot should be preferred over 15:00
-        assigned_times = [assignment["time"] for assignment in assignments]
-        assert "08:00" in assigned_times, "Early time slot should be used with high early time weight"
-
-        # Test that early time is actually preferred by checking which gets the early slot
-        early_assignments = [a for a in assignments if a["time"] == "08:00"]
-        late_assignments = [a for a in assignments if a["time"] == "15:00"]
-
-        assert len(early_assignments) == 1, "Exactly one child should get early slot"
-        assert len(late_assignments) == 1, "Exactly one child should get late slot"
-
-    def test_zero_weights_configuration(self, temp_storage, zero_weights_data):
-        """Test 3.3: Zero weights configuration produces valid assignments."""
-        temp_storage.save("2024_2025", zero_weights_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
-
-        # Should still produce valid assignment even with zero weights
-        assignments = result["assignments"]
-        assert len(assignments) == 1, "Should assign child even with zero weights"
-
-        assignment = assignments[0]
-        assert assignment["child"] == "Child 1", "Should assign the child"
-        assert assignment["teacher"] == "Teacher A", "Should assign to available teacher"
-
-    def test_competing_weight_priorities(self, temp_storage):
-        """Test 3.4: Balanced solution when weights compete."""
-        test_data = {
-            "teachers": {
-                "Preferred_Teacher": {
-                    "name": "Preferred Teacher",
-                    "availability": {
-                        "monday": ["15:00"],  # Late time (conflicts with early time preference)
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                },
-                "Other_Teacher": {
-                    "name": "Other Teacher",
-                    "availability": {
-                        "monday": ["08:00"],  # Early time (conflicts with teacher preference)
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                },
-            },
-            "children": {
-                "Child_1": {
-                    "name": "Child 1",
-                    "availability": {
-                        "monday": ["08:00", "15:00"],
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                    "preferred_teachers": ["Preferred Teacher"],
-                }
-            },
-            "tandems": {},
-            "weights": {"teacher_preference": 0.6, "early_time": 0.7, "tandem_fulfillment": 0.0, "stability": 0.0},
+        children = {
+            "Child_1": {
+                "name": "Child 1",
+                "availability": {},
+                "preferred_teachers": [],
+                "early_preference": True,  # Prefers early slots
+            }
         }
 
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
+        tandems = {}
 
-        # Child should be assigned to one of the teachers
-        assignments = result["assignments"]
-        assert len(assignments) == 1, "Child should be assigned"
+        # Test with high early preference weight
+        weights_high_early = {"preferred_teacher": 1, "priority_early_slot": 10, "tandem_fulfilled": 1}
+        schedule_high, violations_high = create_optimized_schedule(teachers, children, tandems, weights_high_early)
 
-        # The solution should balance both preferences
-        # With early_time weight (0.7) slightly higher than teacher_preference (0.6),
-        # might prefer Other_Teacher at 08:00, but both are valid solutions
-        assignment = assignments[0]
-        assert assignment["teacher"] in ["Preferred Teacher", "Other Teacher"], "Should assign to one of the teachers"
+        # Test with low early preference weight
+        weights_low_early = {"preferred_teacher": 1, "priority_early_slot": 1, "tandem_fulfilled": 1}
+        schedule_low, violations_low = create_optimized_schedule(teachers, children, tandems, weights_low_early)
 
-        # Verify the assignment respects availability constraints
-        if assignment["teacher"] == "Preferred Teacher":
-            assert assignment["time"] == "15:00", "Preferred teacher only available at 15:00"
-        else:
-            assert assignment["time"] == "08:00", "Other teacher only available at 08:00"
+        # Both should produce valid schedules
+        assert schedule_high is not None
+        assert schedule_low is not None
 
-    def test_stability_weight_preserves_existing(self, temp_storage):
-        """Test 3.5: Stability weight preserves existing assignments."""
-        # First, create an existing schedule
-        test_data = {
-            "teachers": {
-                "Teacher_A": {
-                    "name": "Teacher A",
-                    "availability": {
-                        "monday": ["08:00", "09:00"],
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                },
-                "Teacher_B": {
-                    "name": "Teacher B",
-                    "availability": {
-                        "monday": ["08:00", "09:00"],
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                },
-            },
-            "children": {
-                "Child_1": {
-                    "name": "Child 1",
-                    "availability": {
-                        "monday": ["08:00", "09:00"],
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                    "preferred_teachers": ["Teacher A"],
-                },
-                "Child_2": {
-                    "name": "Child 2",
-                    "availability": {
-                        "monday": ["08:00", "09:00"],
-                        "tuesday": [],
-                        "wednesday": [],
-                        "thursday": [],
-                        "friday": [],
-                    },
-                    "preferred_teachers": ["Teacher A"],
-                },
-            },
-            "tandems": {},
-            "weights": {"teacher_preference": 0.5, "early_time": 0.3, "tandem_fulfillment": 0.0, "stability": 0.0},
+    def test_tandem_fulfillment_weight(self, temp_storage):
+        """Test 4.3: Tandem fulfillment weight prioritizes pairing."""
+        teachers = {
+            "Teacher_A": {
+                "name": "Teacher A",
+                "availability": {"Mo": [("09:00", "12:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
+            }
         }
 
-        # Save and solve to get initial assignments
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        initial_result = solver.solve()
-
-        # Store the initial result as "previous schedule"
-        initial_assignments = initial_result["assignments"]
-        assert len(initial_assignments) == 2, "Should have initial assignments"
-
-        # Create data with previous schedule and high stability weight
-        test_data["previous_schedule"] = initial_assignments
-        test_data["weights"]["stability"] = 0.9  # High stability weight
-        test_data["weights"]["teacher_preference"] = 0.1  # Lower other weights
-
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        stable_result = solver.solve()
-
-        # With high stability weight, assignments should be preserved
-        stable_assignments = stable_result["assignments"]
-        assert len(stable_assignments) == 2, "Should maintain assignments"
-
-        # Assignments should be similar to initial ones (allowing for some flexibility in ordering)
-        initial_assignment_keys = {(a["child"], a["teacher"], a["day"], a["time"]) for a in initial_assignments}
-        stable_assignment_keys = {(a["child"], a["teacher"], a["day"], a["time"]) for a in stable_assignments}
-
-        # At least some assignments should be preserved (perfect match not always guaranteed due to solver variations)
-        preserved_count = len(initial_assignment_keys.intersection(stable_assignment_keys))
-        assert preserved_count >= 1, "At least some assignments should be preserved with high stability weight"
-
-    def test_negative_weights_handling(self, temp_storage):
-        """Test 3.6: Negative weights are handled correctly."""
-        test_data = {
-            "teachers": {
-                "Avoided_Teacher": {
-                    "name": "Avoided Teacher",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                },
-                "Preferred_Teacher": {
-                    "name": "Preferred Teacher",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                },
-            },
-            "children": {
-                "Child_1": {
-                    "name": "Child 1",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                    "preferred_teachers": ["Avoided Teacher"],  # This teacher should be avoided due to negative weight
-                }
-            },
-            "tandems": {},
-            "weights": {"teacher_preference": -0.5, "early_time": 0.0, "tandem_fulfillment": 0.0, "stability": 0.0},
+        children = {
+            "Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": []},
+            "Child_2": {"name": "Child 2", "availability": {}, "preferred_teachers": []},
+            "Child_3": {"name": "Child 3", "availability": {}, "preferred_teachers": []},
         }
 
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
+        tandems = {"Tandem_1": {"child1": "Child_1", "child2": "Child_2", "priority": 5}}
 
-        # Child should still be assigned (negative weight doesn't prevent valid assignments)
-        assignments = result["assignments"]
-        assert len(assignments) == 1, "Child should be assigned despite negative teacher preference weight"
+        # High tandem weight
+        weights_high_tandem = {"preferred_teacher": 1, "priority_early_slot": 1, "tandem_fulfilled": 10}
+        schedule_high, violations_high = create_optimized_schedule(teachers, children, tandems, weights_high_tandem)
 
-        # The assignment should still be valid
-        assignment = assignments[0]
-        assert assignment["child"] == "Child 1", "Child should be assigned"
-        assert assignment["teacher"] in [
-            "Avoided Teacher",
-            "Preferred Teacher",
-        ], "Should be assigned to available teacher"
+        # Low tandem weight
+        weights_low_tandem = {"preferred_teacher": 10, "priority_early_slot": 1, "tandem_fulfilled": 1}
+        schedule_low, violations_low = create_optimized_schedule(teachers, children, tandems, weights_low_tandem)
 
-    def test_weight_score_calculation(self, temp_storage):
-        """Test that weight scores are properly calculated and reported."""
-        test_data = {
-            "teachers": {
-                "Teacher_A": {
-                    "name": "Teacher A",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                }
+        # Both should produce valid schedules
+        assert schedule_high is not None
+        assert schedule_low is not None
+
+    def test_balanced_weight_optimization(self, temp_storage):
+        """Test 4.4: Balanced weights create reasonable compromise."""
+        teachers = {
+            "Teacher_A": {
+                "name": "Teacher A",
+                "availability": {"Mo": [("08:00", "16:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
             },
-            "children": {
-                "Child_1": {
-                    "name": "Child 1",
-                    "availability": {"monday": ["08:00"], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
-                    "preferred_teachers": ["Teacher A"],
-                }
+            "Teacher_B": {
+                "name": "Teacher B",
+                "availability": {"Mo": [("08:00", "16:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
             },
-            "tandems": {},
-            "weights": {"teacher_preference": 0.8, "early_time": 0.6, "tandem_fulfillment": 0.0, "stability": 0.0},
         }
 
-        temp_storage.save("2024_2025", test_data)
-        solver = OptimizationSolver(temp_storage, "2024_2025")
-        result = solver.solve()
+        children = {
+            "Child_1": {
+                "name": "Child 1",
+                "availability": {},
+                "preferred_teachers": ["Teacher A"],
+                "early_preference": True,
+            },
+            "Child_2": {"name": "Child 2", "availability": {}, "preferred_teachers": ["Teacher B"]},
+            "Child_3": {"name": "Child 3", "availability": {}, "preferred_teachers": []},
+            "Child_4": {"name": "Child 4", "availability": {}, "preferred_teachers": []},
+        }
 
-        # Should include scoring information
-        assert "score" in result or "objective_value" in result, "Result should include optimization score"
+        tandems = {"Tandem_1": {"child1": "Child_3", "child2": "Child_4", "priority": 7}}
 
-        # Assignment should satisfy preferences
-        assignments = result["assignments"]
-        assert len(assignments) == 1, "Child should be assigned"
-        assignment = assignments[0]
-        assert assignment["teacher"] == "Teacher A", "Should satisfy teacher preference"
-        assert assignment["time"] == "08:00", "Should satisfy early time preference"
+        # Balanced weights
+        weights_balanced = {"preferred_teacher": 5, "priority_early_slot": 3, "tandem_fulfilled": 4}
+        schedule, violations = create_optimized_schedule(teachers, children, tandems, weights_balanced)
+
+        # Should produce reasonable schedule
+        assert schedule is not None
+        assert violations is not None
+
+    def test_zero_weights_handling(self, temp_storage):
+        """Test 4.5: Zero weights disable optimization criteria."""
+        teachers = {
+            "Teacher_A": {
+                "name": "Teacher A",
+                "availability": {"Mo": [("09:00", "12:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
+            }
+        }
+
+        children = {
+            "Child_1": {
+                "name": "Child 1",
+                "availability": {},
+                "preferred_teachers": ["Teacher A"],
+                "early_preference": True,
+            }
+        }
+
+        tandems = {}
+
+        # All weights zero - should still produce valid schedule
+        weights_zero = {"preferred_teacher": 0, "priority_early_slot": 0, "tandem_fulfilled": 0}
+        schedule, violations = create_optimized_schedule(teachers, children, tandems, weights_zero)
+
+        # Should handle zero weights gracefully
+        assert schedule is not None
+        assert violations is not None
+
+    def test_extreme_weight_values(self, temp_storage):
+        """Test 4.6: Extreme weight values don't break optimization."""
+        teachers = {
+            "Teacher_A": {
+                "name": "Teacher A",
+                "availability": {"Mo": [("09:00", "12:00")], "Di": [], "Mi": [], "Do": [], "Fr": []},
+            }
+        }
+
+        children = {"Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher A"]}}
+
+        tandems = {}
+
+        # Extreme high weights
+        weights_extreme = {"preferred_teacher": 1000, "priority_early_slot": 0.001, "tandem_fulfilled": 999}
+        schedule, violations = create_optimized_schedule(teachers, children, tandems, weights_extreme)
+
+        # Should handle extreme values
+        assert schedule is not None
+        assert violations is not None

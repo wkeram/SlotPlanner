@@ -14,8 +14,9 @@ class TestCICDValidation:
         """Test that core modules can be imported."""
         try:
             import app.storage
-            import app.logic
             import app.gui
+            import app.ui_feedback
+            import app.utils
 
             assert True, "Core modules imported successfully"
         except ImportError as e:
