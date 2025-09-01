@@ -3,11 +3,7 @@ Pytest configuration and shared fixtures for SlotPlanner tests.
 """
 
 import pytest
-import tempfile
-import shutil
-from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer
 
 from app.storage import Storage
 

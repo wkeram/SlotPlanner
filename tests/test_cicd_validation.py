@@ -3,8 +3,9 @@ CI/CD validation tests for SlotPlanner.
 Basic tests to ensure the CI/CD pipeline setup is working correctly.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 class TestCICDValidation:

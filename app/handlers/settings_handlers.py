@@ -5,10 +5,13 @@ including optimization weights and configuration management.
 """
 
 import os
-from PySide6.QtWidgets import QWidget, QSpinBox, QSlider, QLabel, QComboBox, QMessageBox, QLineEdit, QFileDialog
+
+from PySide6.QtWidgets import QComboBox, QFileDialog, QLabel, QLineEdit, QMessageBox, QSlider, QWidget
+
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.validation import Validator
+
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)
@@ -25,7 +28,7 @@ def _get_current_default_weights() -> dict:
 
         config_file = "default_weights.json"
         if os.path.exists(config_file):
-            with open(config_file, "r", encoding="utf-8") as f:
+            with open(config_file, encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
         logger.warning(f"Failed to load custom default weights: {e}")
@@ -303,7 +306,7 @@ def load_path_settings(storage: Storage) -> None:
     try:
         config_file = "app_config.json"
         if os.path.exists(config_file):
-            with open(config_file, "r", encoding="utf-8") as f:
+            with open(config_file, encoding="utf-8") as f:
                 config = json.load(f)
 
             if "data_path" in config:
@@ -523,7 +526,7 @@ def settings_language_changed(window: QWidget, storage: Storage) -> None:
             return
 
         # Update the language
-        from app.utils import set_language, get_current_language
+        from app.utils import get_current_language, set_language
 
         current_lang = get_current_language()
 

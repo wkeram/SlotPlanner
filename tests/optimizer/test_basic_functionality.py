@@ -4,6 +4,7 @@ Tests fundamental assignment capabilities without complex constraints.
 """
 
 import pytest
+
 from app.handlers.results_handlers import create_optimized_schedule
 
 pytestmark = pytest.mark.optimizer

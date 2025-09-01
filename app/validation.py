@@ -5,9 +5,9 @@ including teachers, children, tandems, and settings.
 """
 
 import re
-from datetime import datetime, timedelta
-from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
+from datetime import datetime
+
 from app.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -18,8 +18,8 @@ class ValidationResult:
     """Result of a validation operation."""
 
     is_valid: bool
-    errors: List[str]
-    warnings: List[str] = None
+    errors: list[str]
+    warnings: list[str] = None
 
     def __post_init__(self):
         if self.warnings is None:
@@ -169,7 +169,7 @@ class Validator:
         return ValidationResult(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
 
     @staticmethod
-    def validate_teacher_availability(availability: Dict[str, List[List[str]]]) -> ValidationResult:
+    def validate_teacher_availability(availability: dict[str, list[list[str]]]) -> ValidationResult:
         """Validate complete teacher availability data.
 
         Args:
@@ -267,7 +267,7 @@ class Validator:
         return Validator.validate_teacher_name(name)
 
     @staticmethod
-    def validate_optimization_weights(weights: Dict[str, int]) -> ValidationResult:
+    def validate_optimization_weights(weights: dict[str, int]) -> ValidationResult:
         """Validate optimization weight settings.
 
         Args:

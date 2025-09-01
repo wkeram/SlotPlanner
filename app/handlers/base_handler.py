@@ -5,8 +5,11 @@ all handler modules.
 """
 
 import traceback
-from typing import Callable, Any
-from PySide6.QtWidgets import QWidget, QMessageBox
+from collections.abc import Callable
+from typing import Any
+
+from PySide6.QtWidgets import QMessageBox, QWidget
+
 from app.config.logging_config import get_logger
 from app.utils import show_error
 

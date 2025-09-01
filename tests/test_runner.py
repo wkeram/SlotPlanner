@@ -3,9 +3,9 @@ Test runner and utilities for SlotPlanner test suite.
 Provides test execution commands and result reporting.
 """
 
-import pytest
 import sys
-from pathlib import Path
+
+import pytest
 
 
 def run_optimizer_tests():

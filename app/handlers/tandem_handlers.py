@@ -4,14 +4,16 @@ This module contains all handlers for tandem-related functionality
 including adding, editing, and deleting tandems.
 """
 
-from PySide6.QtWidgets import QWidget, QPushButton, QLineEdit, QTableWidget, QComboBox, QSpinBox, QMessageBox
-from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import QComboBox, QLineEdit, QMessageBox, QPushButton, QSpinBox, QTableWidget, QWidget
+
 from app.config.logging_config import get_logger
 from app.storage import Storage
-from app.utils import get_translations, show_error
+from app.ui_teachers import refresh_children_table, refresh_tandems_table, refresh_teacher_table
+from app.utils import show_error
 from app.validation import Validator
-from app.ui_teachers import refresh_teacher_table, refresh_children_table, refresh_tandems_table
+
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)

@@ -5,7 +5,9 @@ This module provides utility functions for translations and error message displa
 
 import json
 from typing import Optional
+
 from PySide6.QtWidgets import QMessageBox, QWidget
+
 from app.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -50,14 +52,14 @@ def get_translations(message_key: str) -> str:
     }
 
     try:
-        with open("app/config/translations.json", "r", encoding="utf-8") as f:
+        with open("app/config/translations.json", encoding="utf-8") as f:
             translations = json.load(f)
             return translations[_current_language][message_key]
-    except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
         logger.warning(f"Translation not found for '{message_key}' in language '{_current_language}'. Using fallback.")
         # Try English as fallback
         try:
-            with open("app/config/translations.json", "r", encoding="utf-8") as f:
+            with open("app/config/translations.json", encoding="utf-8") as f:
                 translations = json.load(f)
                 if "en" in translations and message_key in translations["en"]:
                     return translations["en"][message_key]

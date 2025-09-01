@@ -4,9 +4,9 @@ This module handles the display and updates of teacher information in the UI,
 particularly focusing on the teacher table widget.
 """
 
-from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QWidget
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHeaderView
+from PySide6.QtWidgets import QHeaderView, QTableWidget, QTableWidgetItem, QWidget
+
 from app.config.logging_config import get_logger
 
 logger = get_logger(__name__)

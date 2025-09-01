@@ -7,8 +7,9 @@ tandems, optimization weights, and scheduling results.
 import json
 import os
 import re
-from typing import Optional, Dict, Any, List
 from datetime import datetime
+from typing import Any
+
 from app.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -129,7 +130,7 @@ class Storage:
 
         return file_path
 
-    def load(self, year: str) -> Optional[Dict[str, Any]]:
+    def load(self, year: str) -> dict[str, Any] | None:
         """Load data for a specific school year.
 
         Args:
@@ -148,18 +149,18 @@ class Storage:
             return None
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
                 # Basic validation of loaded data structure
                 if not isinstance(data, dict):
                     logger.error(f"Invalid data format in {year}.json - expected dictionary")
                     return None
                 return data
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.error(f"Error loading data for {year}: {e}")
             return None
 
-    def save(self, year: str, data: Dict[str, Any]) -> bool:
+    def save(self, year: str, data: dict[str, Any]) -> bool:
         """Save data for a specific school year.
 
         Args:
@@ -184,11 +185,11 @@ class Storage:
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
-        except (IOError, TypeError) as e:
+        except (OSError, TypeError) as e:
             logger.error(f"Error saving data for {year}: {e}")
             return False
 
-    def get_default_data_structure(self) -> Dict[str, Any]:
+    def get_default_data_structure(self) -> dict[str, Any]:
         """Get the default data structure for a new year.
 
         Returns:
@@ -208,7 +209,7 @@ class Storage:
 
             config_file = "default_weights.json"
             if os.path.exists(config_file):
-                with open(config_file, "r", encoding="utf-8") as f:
+                with open(config_file, encoding="utf-8") as f:
                     custom_weights = json.load(f)
                     # Merge with defaults, prioritizing custom values
                     default_weights.update(custom_weights)
@@ -276,17 +277,17 @@ class Storage:
                 os.remove(file_path)
                 return True
             return False
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Error deleting data for {year}: {e}")
             return False
 
     def save_schedule_result(
         self,
         year: str,
-        schedule_data: Dict[str, Any],
-        violations: List[str],
-        weights_used: Dict[str, Any],
-        optimization_info: Dict[str, Any] = None,
+        schedule_data: dict[str, Any],
+        violations: list[str],
+        weights_used: dict[str, Any],
+        optimization_info: dict[str, Any] = None,
     ) -> str:
         """Save a new schedule result with timestamp.
 
@@ -335,7 +336,7 @@ class Storage:
 
         return schedule_id
 
-    def get_schedule_results(self, year: str) -> List[Dict[str, Any]]:
+    def get_schedule_results(self, year: str) -> list[dict[str, Any]]:
         """Get all saved schedule results for a year.
 
         Args:
@@ -349,7 +350,7 @@ class Storage:
             return []
         return data.get("schedule_results", [])
 
-    def get_schedule_result_by_id(self, year: str, schedule_id: str) -> Optional[Dict[str, Any]]:
+    def get_schedule_result_by_id(self, year: str, schedule_id: str) -> dict[str, Any] | None:
         """Get a specific schedule result by ID.
 
         Args:
@@ -390,7 +391,7 @@ class Storage:
             logger.info(f"Set current schedule to {schedule_id} for year {year}")
         return success
 
-    def get_current_schedule_result(self, year: str) -> Optional[Dict[str, Any]]:
+    def get_current_schedule_result(self, year: str) -> dict[str, Any] | None:
         """Get the currently selected schedule result.
 
         Args:

@@ -6,16 +6,18 @@ connects event handlers, and manages the overall application state.
 
 import sys
 import traceback
-from PySide6.QtWidgets import QApplication, QMainWindow, QComboBox, QPushButton, QSlider, QLabel
-from PySide6.QtUiTools import QUiLoader
+from datetime import datetime
+
 from PySide6.QtCore import QFile, QIODevice
-from app.storage import Storage
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QMainWindow, QPushButton, QSlider
+
 from app import handlers
 from app.config.logging_config import get_logger
+from app.storage import Storage
 from app.ui_feedback import create_feedback_manager
 from app.utils import get_translations
 from app.version import get_version
-from datetime import datetime
 
 logger = get_logger(__name__)
 

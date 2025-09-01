@@ -5,12 +5,17 @@ and functionality areas.
 """
 
 # Import handlers to maintain backward compatibility
-from .main_handlers import *
-from .teacher_handlers import *
 from .child_handlers import *
-from .tandem_handlers import *
-from .settings_handlers import *
-from .results_handlers import *
+from .main_handlers import *
 
-# Import private functions that are used by the GUI
+# Import specific functions that are used by the GUI
 from .main_handlers import _unsaved_changes
+from .results_handlers import *
+from .settings_handlers import *
+from .tandem_handlers import *
+from .teacher_handlers import *
+
+__all__ = [
+    # Re-export all imported functions for backward compatibility
+    "_unsaved_changes",
+]

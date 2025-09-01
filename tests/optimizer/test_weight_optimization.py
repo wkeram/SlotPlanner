@@ -4,6 +4,7 @@ Tests different optimization weights and their effects on scheduling.
 """
 
 import pytest
+
 from app.handlers.results_handlers import create_optimized_schedule
 
 pytestmark = pytest.mark.optimizer

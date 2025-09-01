@@ -4,6 +4,7 @@ Tests that hard constraints are properly enforced and violations are reported.
 """
 
 import pytest
+
 from app.handlers.results_handlers import create_optimized_schedule
 
 pytestmark = pytest.mark.optimizer

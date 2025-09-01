@@ -3,16 +3,15 @@ Main window UI tests for SlotPlanner.
 Tests core UI functionality, data persistence, and user interactions.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidget
+
+import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QMainWindow, QTableWidget
 
 pytestmark = [pytest.mark.ui, pytest.mark.integration]
 
-from app.storage import Storage
-from tests.conftest import create_test_storage_with_data
 
 # Skip all UI tests since the main GUI is not implemented via gui.py
 pytestmark.append(pytest.mark.skip(reason="Main GUI functionality not implemented in app.gui module"))

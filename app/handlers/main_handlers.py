@@ -4,12 +4,15 @@ This module contains handlers for main application functionality like
 loading, saving, year changes, and application lifecycle events.
 """
 
-from typing import Dict, Any
-from PySide6.QtWidgets import QComboBox, QTableWidget, QMessageBox, QWidget, QSpinBox, QSlider, QTextEdit, QLabel
+from typing import Any
+
+from PySide6.QtWidgets import QComboBox, QLabel, QMessageBox, QSlider, QSpinBox, QTableWidget, QTextEdit, QWidget
+
 from app.config.logging_config import get_logger
 from app.storage import Storage
-from app.ui_teachers import refresh_teacher_table, refresh_children_table, refresh_tandems_table
+from app.ui_teachers import refresh_children_table, refresh_tandems_table, refresh_teacher_table
 from app.version import get_version
+
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)
@@ -427,7 +430,7 @@ def _clear_schedule_display(window: QWidget) -> None:
         logger.debug("Reset status label")
 
 
-def _display_schedule_result(window: QWidget, result: Dict[str, Any]) -> None:
+def _display_schedule_result(window: QWidget, result: dict[str, Any]) -> None:
     """Display a schedule result in the UI.
 
     Args:

@@ -4,6 +4,7 @@ Tests handling of large datasets and unusual scenarios.
 """
 
 import pytest
+
 from app.handlers.results_handlers import create_optimized_schedule
 
 pytestmark = pytest.mark.optimizer

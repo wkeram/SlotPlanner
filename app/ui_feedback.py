@@ -4,20 +4,20 @@ This module provides real-time feedback to users through status updates,
 progress indicators, and visual feedback for all UI interactions.
 """
 
-from typing import Optional, Callable, Any
+from collections.abc import Callable
+
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
-    QWidget,
-    QLabel,
-    QProgressBar,
-    QTableWidget,
-    QMessageBox,
-    QApplication,
-    QLineEdit,
-    QSpinBox,
     QComboBox,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QSpinBox,
+    QTableWidget,
+    QWidget,
 )
-from PySide6.QtCore import QTimer, QThread, Signal
-from PySide6.QtGui import QPalette, QColor
+
 from app.config.logging_config import get_logger
 from app.validation import ValidationResult
 
@@ -112,7 +112,7 @@ class ValidationFeedback:
         self._original_styles = {}
 
     def setup_widget_validation(
-        self, widget: QWidget, validation_func: Callable, error_callback: Optional[Callable] = None
+        self, widget: QWidget, validation_func: Callable, error_callback: Callable | None = None
     ):
         """Setup real-time validation for a widget.
 
@@ -145,7 +145,7 @@ class ValidationFeedback:
         if timer:
             timer.start(500)  # 500ms delay
 
-    def _validate_widget(self, widget: QWidget, validation_func: Callable, error_callback: Optional[Callable]):
+    def _validate_widget(self, widget: QWidget, validation_func: Callable, error_callback: Callable | None):
         """Perform validation and update widget appearance."""
         try:
             result = validation_func()
