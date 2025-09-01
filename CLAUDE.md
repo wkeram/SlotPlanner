@@ -79,6 +79,7 @@ Functional requirements are documented in `README.md` and must be respected when
 - Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors. 
 - Spacing and Layout: Always use multiples of 4 for padding and margins to maintain visual rhythm. Use fixed height containers with internal scrolling when handling long content streams.
 - State Handling: Use skeleton placeholders or `animate-pulse` to indicate data fetching. Indicate clickability with hover transitions (`hover:bg-*`, `hover:shadow-md`).
+- User-facing texts should be stored in English and German language in `app/config/translations.json` and loaded from there to ensure multi-language support.
 
 ## Architecture
 

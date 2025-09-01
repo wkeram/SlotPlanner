@@ -496,3 +496,84 @@ def settings_load_weights_into_ui(window: QWidget, storage: Storage) -> None:
         logger.debug(f"Loaded {loaded_count} weight values into UI for year {year}")
     else:
         logger.warning("No weight sliders found to load values into")
+
+
+def settings_language_changed(window: QWidget, storage: Storage) -> None:
+    """Handle language selection change.
+
+    Args:
+        window: Main application window instance
+        storage: Storage instance for data persistence
+    """
+    def _change_language():
+        combo_language = window.ui.findChild(QComboBox, "comboLanguage")
+        if not combo_language:
+            logger.warning("Language combo box not found")
+            return
+        
+        selected_text = combo_language.currentText()
+        
+        # Map display names to language codes
+        language_map = {
+            "Deutsch": "de",
+            "English": "en"
+        }
+        
+        language_code = language_map.get(selected_text)
+        if not language_code:
+            logger.warning(f"Unknown language selected: {selected_text}")
+            return
+        
+        # Update the language
+        from app.utils import set_language, get_current_language
+        current_lang = get_current_language()
+        
+        if current_lang != language_code:
+            set_language(language_code)
+            
+            # Update UI with new language immediately
+            if hasattr(window, 'update_ui_translations'):
+                window.update_ui_translations()
+            
+            # Show success message in new language
+            from app.utils import get_translations
+            BaseHandler.show_info(
+                window, 
+                get_translations("language_changed"),
+                f"Language changed to {selected_text}.\n\nInterface has been updated to the new language."
+            )
+            logger.info(f"Language changed from {current_lang} to {language_code}")
+    
+    BaseHandler.safe_execute(_change_language, parent=window)
+
+
+def settings_load_language_into_ui(window: QWidget, storage: Storage) -> None:
+    """Load current language setting into the UI dropdown.
+
+    Args:
+        window: Main application window instance
+        storage: Storage instance for data persistence
+    """
+    combo_language = window.ui.findChild(QComboBox, "comboLanguage")
+    if not combo_language:
+        logger.warning("Language combo box not found")
+        return
+    
+    from app.utils import get_current_language
+    current_lang = get_current_language()
+    
+    # Map language codes to display names
+    display_map = {
+        "de": "Deutsch", 
+        "en": "English"
+    }
+    
+    display_name = display_map.get(current_lang, "Deutsch")  # Default to German
+    
+    # Set the combo box to the current language
+    index = combo_language.findText(display_name)
+    if index >= 0:
+        combo_language.setCurrentIndex(index)
+        logger.debug(f"Set language dropdown to {display_name}")
+    else:
+        logger.warning(f"Could not find {display_name} in language dropdown")
