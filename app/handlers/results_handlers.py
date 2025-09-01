@@ -66,18 +66,34 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
 
         # Create and run solver
         try:
+            start_time = datetime.now()
             schedule, violations = create_optimized_schedule(teachers, children, tandems, weights)
+            end_time = datetime.now()
 
-            # Save results
-            data["schedule"] = schedule
-            data["violations"] = violations
+            # Prepare optimization info
+            optimization_info = {
+                "start_time": start_time.isoformat(),
+                "end_time": end_time.isoformat(),
+                "runtime_seconds": (end_time - start_time).total_seconds(),
+                "solver_status": "optimal" if not violations else "feasible",
+                "teachers_count": len(teachers),
+                "children_count": len(children),
+                "tandems_count": len(tandems),
+            }
 
-            success = storage.save(year, data)
-            if success:
-                logger.info(f"Schedule created with {len(violations)} violations")
+            # Save schedule result with timestamp
+            schedule_id = storage.save_schedule_result(year, schedule, violations, weights, optimization_info)
+
+            if schedule_id:
+                logger.info(f"Schedule {schedule_id} created with {len(violations)} violations")
 
                 # Update results display
                 _display_schedule_results(window, schedule, violations)
+
+                # Refresh the schedule history dropdown
+                from .main_handlers import _load_schedule_results_for_year
+
+                _load_schedule_results_for_year(window, storage, year)
 
                 if hasattr(window, "feedback_manager") and window.feedback_manager:
                     window.feedback_manager.show_success(
@@ -88,7 +104,9 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
                     window,
                     "Schedule Created",
                     f"Optimization completed!\n\n"
-                    f"Schedule created with {len(violations)} constraint violations.\n"
+                    f"Schedule ID: {schedule_id}\n"
+                    f"Runtime: {optimization_info['runtime_seconds']:.2f} seconds\n"
+                    f"Violations: {len(violations)}\n\n"
                     f"Check the Results tab for details.",
                 )
             else:

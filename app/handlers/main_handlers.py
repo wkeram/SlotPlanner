@@ -4,7 +4,8 @@ This module contains handlers for main application functionality like
 loading, saving, year changes, and application lifecycle events.
 """
 
-from PySide6.QtWidgets import QComboBox, QTableWidget, QMessageBox, QWidget, QSpinBox
+from typing import Dict, Any
+from PySide6.QtWidgets import QComboBox, QTableWidget, QMessageBox, QWidget, QSpinBox, QTextEdit, QLabel
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.ui_teachers import refresh_teacher_table, refresh_children_table, refresh_tandems_table
@@ -301,6 +302,9 @@ def _force_reload_year_data(window: QWidget, storage: Storage) -> None:
     refresh_children_table(window.ui, data)
     refresh_tandems_table(window.ui, data)
 
+    # Load schedule results for the new year
+    _load_schedule_results_for_year(window, storage, year)
+
     # Load optimization weights from data into UI
     _load_weights_into_ui(window, data)
 
@@ -340,6 +344,129 @@ def _load_weights_into_ui(window: QWidget, data: dict) -> None:
             spin_box.setValue(value)
 
     logger.debug(f"Loaded weights into UI: {weights}")
+
+
+def _load_schedule_results_for_year(window: QWidget, storage: Storage, year: str) -> None:
+    """Load and display schedule results for the specified year.
+
+    Args:
+        window: Main application window
+        storage: Storage instance
+        year: School year to load results for
+    """
+    from PySide6.QtWidgets import QComboBox
+
+    # Get schedule history combo box
+    combo_history = window.ui.findChild(QComboBox, "comboScheduleHistory")
+    if not combo_history:
+        return
+
+    # Clear and populate the combo box with saved results
+    combo_history.clear()
+
+    results = storage.get_schedule_results(year)
+    if not results:
+        combo_history.setPlaceholderText("No saved results for this year")
+        _clear_schedule_display(window)
+        logger.debug(f"No schedule results found for year {year}")
+        return
+
+    # Add results to combo box (most recent first)
+    for result in results:
+        display_text = f"{result['readable_timestamp']} - {result.get('description', 'Schedule Result')}"
+        combo_history.addItem(display_text, result["id"])
+
+    # Load the current schedule result if one is selected
+    current_result = storage.get_current_schedule_result(year)
+    if current_result:
+        # Find and select the current result in combo box
+        current_id = current_result["id"]
+        for i in range(combo_history.count()):
+            if combo_history.itemData(i) == current_id:
+                combo_history.setCurrentIndex(i)
+                break
+
+        # Display the current result
+        _display_schedule_result(window, current_result)
+        logger.debug(f"Loaded current schedule result {current_id} for year {year}")
+    else:
+        # Select the most recent result by default
+        combo_history.setCurrentIndex(0)
+        _display_schedule_result(window, results[0])
+        storage.set_current_schedule(year, results[0]["id"])
+        logger.debug(f"Selected most recent schedule result for year {year}")
+
+
+def _clear_schedule_display(window: QWidget) -> None:
+    """Clear the schedule display widgets.
+
+    Args:
+        window: Main application window
+    """
+    # Clear schedule table
+    schedule_table = window.ui.findChild(QTableWidget, "tableSchedule")
+    if schedule_table:
+        schedule_table.setRowCount(0)
+        schedule_table.setColumnCount(0)
+        logger.debug("Cleared schedule table")
+
+    # Clear violations text
+    violations_text = window.ui.findChild(QTextEdit, "textViolations")
+    if violations_text:
+        violations_text.clear()
+        logger.debug("Cleared violations text")
+
+    # Reset status label
+    status_label = window.ui.findChild(QLabel, "labelStatus")
+    if status_label:
+        status_label.setText("Ready to create schedule...")
+        logger.debug("Reset status label")
+
+
+def _display_schedule_result(window: QWidget, result: Dict[str, Any]) -> None:
+    """Display a schedule result in the UI.
+
+    Args:
+        window: Main application window
+        result: Schedule result data to display
+    """
+    schedule_data = result.get("schedule", {})
+    violations = result.get("violations", [])
+    timestamp = result.get("readable_timestamp", "Unknown")
+    optimization_info = result.get("optimization_info", {})
+
+    # Update schedule table
+    schedule_table = window.ui.findChild(QTableWidget, "tableSchedule")
+    if schedule_table and schedule_data:
+        from .results_handlers import _display_schedule_results
+
+        _display_schedule_results(window, schedule_data, violations)
+
+    # Update violations text
+    violations_text = window.ui.findChild(QTextEdit, "textViolations")
+    if violations_text:
+        if violations:
+            violations_text.setText("\n".join(violations))
+        else:
+            violations_text.setText("No constraint violations found.")
+
+    # Update status label with detailed info
+    status_label = window.ui.findChild(QLabel, "labelStatus")
+    if status_label:
+        runtime = optimization_info.get("runtime_seconds", 0)
+        status_text = f"Schedule from {timestamp}"
+
+        if runtime > 0:
+            status_text += f" (solved in {runtime:.2f}s)"
+
+        if violations:
+            status_text += f" - {len(violations)} violations"
+        else:
+            status_text += " - No violations"
+
+        status_label.setText(status_text)
+
+    logger.debug(f"Displayed schedule result from {timestamp} with {len(violations)} violations")
 
 
 def _unsaved_changes(window: QWidget, storage: Storage) -> bool:
@@ -516,3 +643,101 @@ def main_show_about(window: QWidget) -> None:
     """
 
     QMessageBox.about(window, "About SlotPlanner", about_text)
+
+
+def main_on_schedule_history_changed(window: QWidget, storage: Storage) -> None:
+    """Handle schedule history selection change.
+
+    Args:
+        window: Main application window instance
+        storage: Storage instance for data persistence
+    """
+
+    def _handle_schedule_selection():
+        from PySide6.QtWidgets import QComboBox
+
+        combo_history = window.ui.findChild(QComboBox, "comboScheduleHistory")
+        year_combo = window.ui.findChild(QComboBox, "comboYearSelect")
+
+        if not combo_history or not year_combo:
+            return
+
+        current_year = year_combo.currentText()
+        selected_index = combo_history.currentIndex()
+
+        if selected_index < 0:
+            return
+
+        schedule_id = combo_history.itemData(selected_index)
+        if not schedule_id:
+            return
+
+        # Load and display the selected schedule result
+        result = storage.get_schedule_result_by_id(current_year, schedule_id)
+        if result:
+            _display_schedule_result(window, result)
+            storage.set_current_schedule(current_year, schedule_id)
+            logger.info(f"Selected schedule result {schedule_id} for year {current_year}")
+
+    BaseHandler.safe_execute(_handle_schedule_selection, parent=window)
+
+
+def main_on_delete_schedule_clicked(window: QWidget, storage: Storage) -> None:
+    """Handle delete schedule button click.
+
+    Args:
+        window: Main application window instance
+        storage: Storage instance for data persistence
+    """
+
+    def _delete_schedule():
+        from PySide6.QtWidgets import QComboBox
+
+        combo_history = window.ui.findChild(QComboBox, "comboScheduleHistory")
+        year_combo = window.ui.findChild(QComboBox, "comboYearSelect")
+
+        if not combo_history or not year_combo:
+            return
+
+        current_year = year_combo.currentText()
+        selected_index = combo_history.currentIndex()
+
+        if selected_index < 0:
+            BaseHandler.show_info(window, "No Selection", "Please select a schedule result to delete.")
+            return
+
+        schedule_id = combo_history.itemData(selected_index)
+        if not schedule_id:
+            return
+
+        # Get result info for confirmation
+        result = storage.get_schedule_result_by_id(current_year, schedule_id)
+        if not result:
+            BaseHandler.show_error(window, "Error", "Selected schedule result not found.")
+            return
+
+        # Confirm deletion
+        timestamp = result.get("readable_timestamp", "Unknown")
+        description = result.get("description", "Schedule Result")
+
+        msg = QMessageBox(window)
+        msg.setWindowTitle("Confirm Deletion")
+        msg.setText(f"Are you sure you want to delete this schedule result?\n\n{description}\n{timestamp}")
+        msg.setIcon(QMessageBox.Question)
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg.setDefaultButton(QMessageBox.No)
+
+        if msg.exec() != QMessageBox.Yes:
+            return
+
+        # Delete the schedule result
+        success = storage.delete_schedule_result(current_year, schedule_id)
+        if success:
+            # Refresh the schedule results display
+            _load_schedule_results_for_year(window, storage, current_year)
+            BaseHandler.show_info(window, "Deleted", "Schedule result has been deleted successfully.")
+            logger.info(f"Deleted schedule result {schedule_id} for year {current_year}")
+        else:
+            BaseHandler.show_error(window, "Error", "Failed to delete schedule result.")
+
+    BaseHandler.safe_execute(_delete_schedule, parent=window)

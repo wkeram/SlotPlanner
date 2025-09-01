@@ -56,7 +56,10 @@
         </size>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::MultiSelection</enum>
+        <enum>QAbstractItemView::ExtendedSelection</enum>
+       </property>
+       <property name="toolTip">
+        <string>Select preferred teachers (Ctrl+click for multiple selection)</string>
        </property>
       </widget>
      </item>

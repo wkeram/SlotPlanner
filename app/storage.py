@@ -6,7 +6,8 @@ tandems, optimization weights, and scheduling results.
 
 import json
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 from app.config.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -98,8 +99,8 @@ class Storage:
                 "teacher_pause_respected": 1,
                 "preserve_existing_plan": 10,
             },
-            "schedule": {},
-            "violations": [],
+            "schedule_results": [],  # List of saved schedule results with timestamps
+            "current_schedule_id": None,  # ID of currently selected schedule result
         }
 
     def exists(self, year: str) -> bool:
@@ -149,3 +150,164 @@ class Storage:
         except IOError as e:
             logger.error(f"Error deleting data for {year}: {e}")
             return False
+
+    def save_schedule_result(
+        self,
+        year: str,
+        schedule_data: Dict[str, Any],
+        violations: List[str],
+        weights_used: Dict[str, Any],
+        optimization_info: Dict[str, Any] = None,
+    ) -> str:
+        """Save a new schedule result with timestamp.
+
+        Args:
+            year: School year in format "YYYY_YYYY"
+            schedule_data: The computed schedule assignments
+            violations: List of constraint violations
+            weights_used: The optimization weights used for this computation
+            optimization_info: Additional info (solver status, runtime, etc.)
+
+        Returns:
+            The ID of the saved schedule result
+        """
+        data = self.load(year) or self.get_default_data_structure()
+
+        # Generate unique ID based on timestamp
+        timestamp = datetime.now()
+        schedule_id = timestamp.strftime("%Y%m%d_%H%M%S")
+
+        # Create schedule result entry
+        schedule_result = {
+            "id": schedule_id,
+            "timestamp": timestamp.isoformat(),
+            "readable_timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "schedule": schedule_data,
+            "violations": violations,
+            "weights_used": weights_used.copy(),
+            "optimization_info": optimization_info or {},
+            "description": f"Schedule computed on {timestamp.strftime('%Y-%m-%d at %H:%M')}",
+        }
+
+        # Add to results list (most recent first)
+        if "schedule_results" not in data:
+            data["schedule_results"] = []
+        data["schedule_results"].insert(0, schedule_result)
+
+        # Set as current schedule
+        data["current_schedule_id"] = schedule_id
+
+        # Save to file
+        success = self.save(year, data)
+        if success:
+            logger.info(f"Saved schedule result {schedule_id} for year {year}")
+        else:
+            logger.error(f"Failed to save schedule result {schedule_id} for year {year}")
+
+        return schedule_id
+
+    def get_schedule_results(self, year: str) -> List[Dict[str, Any]]:
+        """Get all saved schedule results for a year.
+
+        Args:
+            year: School year in format "YYYY_YYYY"
+
+        Returns:
+            List of schedule results, most recent first
+        """
+        data = self.load(year)
+        if not data:
+            return []
+        return data.get("schedule_results", [])
+
+    def get_schedule_result_by_id(self, year: str, schedule_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific schedule result by ID.
+
+        Args:
+            year: School year in format "YYYY_YYYY"
+            schedule_id: ID of the schedule result
+
+        Returns:
+            Schedule result data or None if not found
+        """
+        results = self.get_schedule_results(year)
+        for result in results:
+            if result.get("id") == schedule_id:
+                return result
+        return None
+
+    def set_current_schedule(self, year: str, schedule_id: str) -> bool:
+        """Set the currently active schedule result.
+
+        Args:
+            year: School year in format "YYYY_YYYY"
+            schedule_id: ID of the schedule result to set as current
+
+        Returns:
+            True if successful, False otherwise
+        """
+        data = self.load(year)
+        if not data:
+            return False
+
+        # Verify the schedule exists
+        if not self.get_schedule_result_by_id(year, schedule_id):
+            logger.error(f"Schedule result {schedule_id} not found for year {year}")
+            return False
+
+        data["current_schedule_id"] = schedule_id
+        success = self.save(year, data)
+        if success:
+            logger.info(f"Set current schedule to {schedule_id} for year {year}")
+        return success
+
+    def get_current_schedule_result(self, year: str) -> Optional[Dict[str, Any]]:
+        """Get the currently selected schedule result.
+
+        Args:
+            year: School year in format "YYYY_YYYY"
+
+        Returns:
+            Current schedule result data or None if none selected
+        """
+        data = self.load(year)
+        if not data:
+            return None
+
+        current_id = data.get("current_schedule_id")
+        if not current_id:
+            return None
+
+        return self.get_schedule_result_by_id(year, current_id)
+
+    def delete_schedule_result(self, year: str, schedule_id: str) -> bool:
+        """Delete a specific schedule result.
+
+        Args:
+            year: School year in format "YYYY_YYYY"
+            schedule_id: ID of the schedule result to delete
+
+        Returns:
+            True if successful, False otherwise
+        """
+        data = self.load(year)
+        if not data or "schedule_results" not in data:
+            return False
+
+        # Find and remove the result
+        results = data["schedule_results"]
+        original_count = len(results)
+        data["schedule_results"] = [r for r in results if r.get("id") != schedule_id]
+
+        if len(data["schedule_results"]) == original_count:
+            logger.warning(f"Schedule result {schedule_id} not found for deletion")
+            return False
+
+        # If we deleted the current schedule, clear the current selection
+        if data.get("current_schedule_id") == schedule_id:
+            data["current_schedule_id"] = None
+
+        success = self.save(year, data)
+        if success:
+            logger.info(f"Deleted schedule result {schedule_id} for year {year}")
+        return success

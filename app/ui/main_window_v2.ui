@@ -43,18 +43,17 @@
          <widget class="QComboBox" name="comboYearSelect"/>
         </item>
         <item>
-         <widget class="QPushButton" name="buttonLoad">
-          <property name="text">
-           <string>Load</string>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="buttonSave">
-          <property name="text">
-           <string>Save</string>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
           </property>
-         </widget>
+         </spacer>
         </item>
        </layout>
       </item>
@@ -396,6 +395,55 @@
              </spacer>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBoxScheduleHistory">
+            <property name="title">
+             <string>Saved Schedule Results</string>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QLabel" name="labelSelectSchedule">
+               <property name="text">
+                <string>Select Result:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="comboScheduleHistory">
+               <property name="placeholderText">
+                <string>No saved results</string>
+               </property>
+               <property name="toolTip">
+                <string>Select a previously computed schedule result to view</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="buttonDeleteSchedule">
+               <property name="text">
+                <string>Delete Selected</string>
+               </property>
+               <property name="toolTip">
+                <string>Delete the selected schedule result permanently</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_4">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
           </item>
           <item>
            <widget class="QTabWidget" name="tabWidgetResults">

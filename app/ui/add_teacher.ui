@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Add Teacher</string>
   </property>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
@@ -40,7 +40,7 @@
     <item>
      <widget class="QPushButton" name="buttonOk">
       <property name="text">
-       <string>Speichern</string>
+       <string>Save Teacher</string>
       </property>
      </widget>
     </item>

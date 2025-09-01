@@ -141,6 +141,20 @@ class SlotPlannerApp(QMainWindow):
             self._connect_button("buttonCreateSchedule", lambda: handlers.results_create_schedule(self, self.storage))
             self._connect_button("buttonExportPDF", lambda: handlers.results_export_pdf(self, self.storage))
 
+            # Schedule history callbacks
+            self._connect_button(
+                "buttonDeleteSchedule", lambda: handlers.main_on_delete_schedule_clicked(self, self.storage)
+            )
+
+            combo_history = self.ui.findChild(QComboBox, "comboScheduleHistory")
+            if combo_history:
+                combo_history.currentIndexChanged.connect(
+                    lambda: handlers.main_on_schedule_history_changed(self, self.storage)
+                )
+                logger.debug("Connected comboScheduleHistory")
+            else:
+                logger.warning("comboScheduleHistory not found")
+
             # Bottom toolbar callbacks
             self._connect_button("buttonAbout", lambda: handlers.main_show_about(self))
             self._connect_button("buttonExit", self.close)
