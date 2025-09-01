@@ -1,0 +1,10 @@
+{
+    "en": {
+        "invalid_time_range": "Some rows have invalid time ranges. Duration needs to be at least 45 min.",
+        "invalid_teacher_name": "Invalid teacher name. Please enter a valid name."
+    },
+    "de": {
+        "invalid_time_range": "Einige Zeilen haben ungültige Zeitbereiche. Die Dauer muss mindestens 45 Minuten betragen.",
+        "invalid_teacher_name": "Ungültiger Lehrername. Bitte geben Sie einen gültigen Namen ein."
+    }
+}

@@ -1,5 +1,12 @@
+from app.gui import run_application
+from app.config.logging_config import AppLogger
+
+
 def main():
-    print("Hello from slotplanner!")
+    """Entry point for the SlotPlanner application."""
+    # Initialize logging configuration
+    AppLogger()
+    return run_application()
 
 
 if __name__ == "__main__":
