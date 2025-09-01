@@ -55,3 +55,5 @@ htmlcov/
 *.exe
 *.dmg
 *.app
+app_config.json
+default_weights.json

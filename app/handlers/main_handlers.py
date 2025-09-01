@@ -5,7 +5,7 @@ loading, saving, year changes, and application lifecycle events.
 """
 
 from typing import Dict, Any
-from PySide6.QtWidgets import QComboBox, QTableWidget, QMessageBox, QWidget, QSpinBox, QTextEdit, QLabel
+from PySide6.QtWidgets import QComboBox, QTableWidget, QMessageBox, QWidget, QSpinBox, QSlider, QTextEdit, QLabel
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.ui_teachers import refresh_teacher_table, refresh_children_table, refresh_tandems_table
@@ -322,26 +322,29 @@ def _load_weights_into_ui(window: QWidget, data: dict) -> None:
     weights = data.get("weights", {})
 
     weight_widgets = {
-        "preferred_teacher": "spinPreferredTeacher",
-        "priority_early_slot": "spinEarlySlot",
-        "tandem_fulfilled": "spinTandemFulfilled",
-        "teacher_pause_respected": "spinTeacherBreak",
-        "preserve_existing_plan": "spinPreserveExisting",
+        "preferred_teacher": ("sliderPreferredTeacher", "labelPreferredTeacherValue"),
+        "priority_early_slot": ("sliderEarlySlot", "labelEarlySlotValue"),
+        "tandem_fulfilled": ("sliderTandemFulfilled", "labelTandemFulfilledValue"),
+        "teacher_pause_respected": ("sliderTeacherBreak", "labelTeacherBreakValue"),
+        "preserve_existing_plan": ("sliderPreserveExisting", "labelPreserveExistingValue"),
     }
 
-    defaults = {
-        "preferred_teacher": 5,
-        "priority_early_slot": 3,
-        "tandem_fulfilled": 4,
-        "teacher_pause_respected": 1,
-        "preserve_existing_plan": 10,
-    }
+    # Get current defaults (may be custom)
+    from app.handlers.settings_handlers import _get_current_default_weights
 
-    for key, widget_name in weight_widgets.items():
-        spin_box = window.ui.findChild(QSpinBox, widget_name)
-        if spin_box:
+    defaults = _get_current_default_weights()
+
+    for key, (slider_name, label_name) in weight_widgets.items():
+        slider = window.ui.findChild(QSlider, slider_name)
+        if slider:
             value = weights.get(key, defaults.get(key, 5))
-            spin_box.setValue(value)
+            slider.setValue(value)
+
+            # Update the label
+            label = window.ui.findChild(QLabel, label_name)
+            if label:
+                default_val = defaults.get(key, 5)
+                label.setText(f"Value: {value} (Default: {default_val}, Range: 0-20)")
 
     logger.debug(f"Loaded weights into UI: {weights}")
 

@@ -223,7 +223,9 @@
             <property name="title">
              <string>Optimization Weights</string>
             </property>
-            <layout class="QFormLayout" name="formLayoutWeights">
+            <layout class="QVBoxLayout" name="verticalLayout_weights">
+             <item>
+              <layout class="QFormLayout" name="formLayoutWeights">
              <item row="0" column="0">
               <widget class="QLabel" name="labelPreferredTeacher">
                <property name="text">
@@ -232,17 +234,43 @@
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QSpinBox" name="spinPreferredTeacher">
-               <property name="minimum">
-                <number>0</number>
-               </property>
-               <property name="maximum">
-                <number>20</number>
-               </property>
-               <property name="value">
-                <number>5</number>
-               </property>
-              </widget>
+              <layout class="QVBoxLayout" name="layoutPreferredTeacher">
+               <item>
+                <widget class="QSlider" name="sliderPreferredTeacher">
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>20</number>
+                 </property>
+                 <property name="value">
+                  <number>5</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="tickPosition">
+                  <enum>QSlider::TickPosition::TicksBelow</enum>
+                 </property>
+                 <property name="tickInterval">
+                  <number>5</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelPreferredTeacherValue">
+                 <property name="text">
+                  <string>Value: 5 (Default: 5, Range: 0-20)</string>
+                 </property>
+                 <property name="alignment">
+                  <enum>Qt::AlignmentFlag::AlignCenter</enum>
+                 </property>
+                 <property name="styleSheet">
+                  <string>font-size: 10px; color: gray;</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item row="1" column="0">
               <widget class="QLabel" name="labelEarlySlot">
@@ -252,17 +280,43 @@
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QSpinBox" name="spinEarlySlot">
-               <property name="minimum">
-                <number>0</number>
-               </property>
-               <property name="maximum">
-                <number>20</number>
-               </property>
-               <property name="value">
-                <number>3</number>
-               </property>
-              </widget>
+              <layout class="QVBoxLayout" name="layoutEarlySlot">
+               <item>
+                <widget class="QSlider" name="sliderEarlySlot">
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>20</number>
+                 </property>
+                 <property name="value">
+                  <number>3</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="tickPosition">
+                  <enum>QSlider::TickPosition::TicksBelow</enum>
+                 </property>
+                 <property name="tickInterval">
+                  <number>5</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelEarlySlotValue">
+                 <property name="text">
+                  <string>Value: 3 (Default: 3, Range: 0-20)</string>
+                 </property>
+                 <property name="alignment">
+                  <enum>Qt::AlignmentFlag::AlignCenter</enum>
+                 </property>
+                 <property name="styleSheet">
+                  <string>font-size: 10px; color: gray;</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item row="2" column="0">
               <widget class="QLabel" name="labelTandemFulfilled">
@@ -272,17 +326,43 @@
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QSpinBox" name="spinTandemFulfilled">
-               <property name="minimum">
-                <number>0</number>
-               </property>
-               <property name="maximum">
-                <number>20</number>
-               </property>
-               <property name="value">
-                <number>4</number>
-               </property>
-              </widget>
+              <layout class="QVBoxLayout" name="layoutTandemFulfilled">
+               <item>
+                <widget class="QSlider" name="sliderTandemFulfilled">
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>20</number>
+                 </property>
+                 <property name="value">
+                  <number>4</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="tickPosition">
+                  <enum>QSlider::TickPosition::TicksBelow</enum>
+                 </property>
+                 <property name="tickInterval">
+                  <number>5</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelTandemFulfilledValue">
+                 <property name="text">
+                  <string>Value: 4 (Default: 4, Range: 0-20)</string>
+                 </property>
+                 <property name="alignment">
+                  <enum>Qt::AlignmentFlag::AlignCenter</enum>
+                 </property>
+                 <property name="styleSheet">
+                  <string>font-size: 10px; color: gray;</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item row="3" column="0">
               <widget class="QLabel" name="labelTeacherBreak">
@@ -292,17 +372,43 @@
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QSpinBox" name="spinTeacherBreak">
-               <property name="minimum">
-                <number>0</number>
-               </property>
-               <property name="maximum">
-                <number>20</number>
-               </property>
-               <property name="value">
-                <number>1</number>
-               </property>
-              </widget>
+              <layout class="QVBoxLayout" name="layoutTeacherBreak">
+               <item>
+                <widget class="QSlider" name="sliderTeacherBreak">
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>20</number>
+                 </property>
+                 <property name="value">
+                  <number>1</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="tickPosition">
+                  <enum>QSlider::TickPosition::TicksBelow</enum>
+                 </property>
+                 <property name="tickInterval">
+                  <number>5</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelTeacherBreakValue">
+                 <property name="text">
+                  <string>Value: 1 (Default: 1, Range: 0-20)</string>
+                 </property>
+                 <property name="alignment">
+                  <enum>Qt::AlignmentFlag::AlignCenter</enum>
+                 </property>
+                 <property name="styleSheet">
+                  <string>font-size: 10px; color: gray;</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item row="4" column="0">
               <widget class="QLabel" name="labelPreserveExisting">
@@ -312,38 +418,203 @@
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QSpinBox" name="spinPreserveExisting">
-               <property name="minimum">
-                <number>0</number>
-               </property>
-               <property name="maximum">
-                <number>20</number>
-               </property>
-               <property name="value">
-                <number>10</number>
-               </property>
-              </widget>
+              <layout class="QVBoxLayout" name="layoutPreserveExisting">
+               <item>
+                <widget class="QSlider" name="sliderPreserveExisting">
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>20</number>
+                 </property>
+                 <property name="value">
+                  <number>10</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="tickPosition">
+                  <enum>QSlider::TickPosition::TicksBelow</enum>
+                 </property>
+                 <property name="tickInterval">
+                  <number>5</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelPreserveExistingValue">
+                 <property name="text">
+                  <string>Value: 10 (Default: 10, Range: 0-20)</string>
+                 </property>
+                 <property name="alignment">
+                  <enum>Qt::AlignmentFlag::AlignCenter</enum>
+                 </property>
+                 <property name="styleSheet">
+                  <string>font-size: 10px; color: gray;</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_weights_buttons">
+               <item>
+                <spacer name="horizontalSpacer_weights">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="buttonResetWeightsToDefaults">
+                 <property name="text">
+                  <string>Reset to Defaults</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Reset all optimization weights to their default values</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="buttonSaveWeights">
+                 <property name="text">
+                  <string>Save for Current Year</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Save current optimization weights to the selected school year</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="buttonSaveWeightsAsDefault">
+                 <property name="text">
+                  <string>Save as Default</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Save current weights as default values for new projects</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_6">
-            <item>
-             <widget class="QPushButton" name="buttonResetWeights">
-              <property name="text">
-               <string>Reset to Defaults</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="buttonSaveSettings">
-              <property name="text">
-               <string>Save Settings</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <widget class="QGroupBox" name="groupBoxStoragePaths">
+            <property name="title">
+             <string>Storage Locations</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_11">
+             <item>
+              <layout class="QFormLayout" name="formLayoutPaths">
+               <item row="0" column="0">
+                <widget class="QLabel" name="labelDataPath">
+                 <property name="text">
+                  <string>Data Storage Path:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout_9">
+                 <item>
+                  <widget class="QLineEdit" name="lineEditDataPath">
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Default: ./data</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>Directory where JSON data files are stored</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="buttonSelectDataPath">
+                   <property name="text">
+                    <string>Browse...</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>Select directory for data storage</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="labelExportPath">
+                 <property name="text">
+                  <string>PDF Export Path:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout_10">
+                 <item>
+                  <widget class="QLineEdit" name="lineEditExportPath">
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Default: ./exports</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>Directory where PDF exports are saved</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="buttonSelectExportPath">
+                   <property name="text">
+                    <string>Browse...</string>
+                   </property>
+                   <property name="toolTip">
+                    <string>Select directory for PDF exports</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_11">
+               <item>
+                <spacer name="horizontalSpacer_5">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="buttonResetPathsToDefaults">
+                 <property name="text">
+                  <string>Reset to Defaults</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Reset storage paths to absolute default locations</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
           </item>
           <item>
            <spacer name="verticalSpacer">

@@ -6,7 +6,7 @@ connects event handlers, and manages the overall application state.
 
 import sys
 import traceback
-from PySide6.QtWidgets import QApplication, QMainWindow, QComboBox, QPushButton
+from PySide6.QtWidgets import QApplication, QMainWindow, QComboBox, QPushButton, QSlider, QLabel
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QIODevice
 from app.storage import Storage
@@ -28,9 +28,12 @@ class SlotPlannerApp(QMainWindow):
         try:
             logger.info("Initializing SlotPlanner application")
 
-            # Initialize storage
+            # Initialize storage and load path settings
             self.storage = Storage()
-            logger.info("Storage initialized")
+            from app.handlers.settings_handlers import load_path_settings
+
+            load_path_settings(self.storage)
+            logger.info("Storage initialized with custom paths")
 
             # Track previous year for unsaved changes detection
             self.previous_year = None
@@ -134,8 +137,25 @@ class SlotPlannerApp(QMainWindow):
             self._connect_button("buttonDeleteTandem", lambda: handlers.tandem_delete_selected(self, self.storage))
 
             # Settings tab callbacks
-            self._connect_button("buttonResetWeights", lambda: handlers.settings_reset_weights(self, self.storage))
-            self._connect_button("buttonSaveSettings", lambda: handlers.settings_save_weights(self, self.storage))
+            self._connect_button(
+                "buttonResetWeightsToDefaults", lambda: handlers.settings_reset_weights(self, self.storage)
+            )
+            self._connect_button("buttonSaveWeights", lambda: handlers.settings_save_weights(self, self.storage))
+            self._connect_button(
+                "buttonSaveWeightsAsDefault", lambda: handlers.settings_save_weights_as_default(self, self.storage)
+            )
+
+            # Connect weight sliders
+            self._connect_weight_sliders()
+
+            # Storage path callbacks
+            self._connect_button("buttonSelectDataPath", lambda: handlers.settings_select_data_path(self, self.storage))
+            self._connect_button(
+                "buttonSelectExportPath", lambda: handlers.settings_select_export_path(self, self.storage)
+            )
+            self._connect_button(
+                "buttonResetPathsToDefaults", lambda: handlers.settings_reset_paths(self, self.storage)
+            )
 
             # Results tab callbacks
             self._connect_button("buttonCreateSchedule", lambda: handlers.results_create_schedule(self, self.storage))
@@ -187,6 +207,46 @@ class SlotPlannerApp(QMainWindow):
             logger.error(f"Failed to connect {button_name}: {e}")
             logger.error(traceback.format_exc())
 
+    def _connect_weight_sliders(self):
+        """Connect weight sliders to update their corresponding value labels."""
+        slider_configs = [
+            ("sliderPreferredTeacher", "labelPreferredTeacherValue", "preferred_teacher"),
+            ("sliderEarlySlot", "labelEarlySlotValue", "priority_early_slot"),
+            ("sliderTandemFulfilled", "labelTandemFulfilledValue", "tandem_fulfilled"),
+            ("sliderTeacherBreak", "labelTeacherBreakValue", "teacher_pause_respected"),
+            ("sliderPreserveExisting", "labelPreserveExistingValue", "preserve_existing_plan"),
+        ]
+
+        for slider_name, label_name, weight_key in slider_configs:
+            try:
+                slider = self.ui.findChild(QSlider, slider_name)
+                label = self.ui.findChild(QLabel, label_name)
+
+                if slider and label:
+                    # Create a closure to capture the current values
+                    def make_update_callback(lbl, w_key):
+                        def update_label(value):
+                            # Get current default value dynamically
+                            from app.handlers.settings_handlers import _get_current_default_weights
+
+                            current_defaults = _get_current_default_weights()
+                            default_val = current_defaults.get(w_key, 5)
+                            lbl.setText(f"Value: {value} (Default: {default_val}, Range: 0-20)")
+
+                        return update_label
+
+                    slider.valueChanged.connect(make_update_callback(label, weight_key))
+                    logger.debug(f"Connected {slider_name}")
+                else:
+                    if not slider:
+                        logger.warning(f"{slider_name} not found")
+                    if not label:
+                        logger.warning(f"{label_name} not found")
+
+            except Exception as e:
+                logger.error(f"Failed to connect {slider_name}: {e}")
+                logger.error(traceback.format_exc())
+
     def setup_feedback_system(self):
         """Initialize the UI feedback and validation system."""
         try:
@@ -217,6 +277,9 @@ class SlotPlannerApp(QMainWindow):
         current_school_year = f"{current_year}_{current_year + 1}"
         combo_year.setCurrentText(current_school_year)
         self.previous_year = current_school_year
+
+        # Load storage paths into UI
+        handlers.settings_load_paths_into_ui(self, self.storage)
 
         # Initialize empty tables
         handlers.main_on_load_clicked(self, self.storage)
@@ -255,6 +318,11 @@ def run_application():
     app = QApplication(sys.argv)
     app.setApplicationName("SlotPlanner")
     app.setApplicationVersion("1.0.0")
+
+    # Set application icon
+    from PySide6.QtGui import QIcon
+
+    app.setWindowIcon(QIcon("icons/slotplanner.ico"))
 
     logger.info("Starting SlotPlanner application")
 

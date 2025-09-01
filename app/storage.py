@@ -16,19 +16,27 @@ logger = get_logger(__name__)
 class Storage:
     """Handles data persistence for SlotPlanner application data."""
 
-    def __init__(self, data_dir: str = "data"):
-        """Initialize storage with data directory.
+    def __init__(self, data_dir: str = None, export_dir: str = None):
+        """Initialize storage with data and export directories.
 
         Args:
-            data_dir: Directory to store JSON files
+            data_dir: Directory to store JSON files (default: absolute path to ./data)
+            export_dir: Directory to store PDF exports (default: absolute path to ./exports)
         """
-        self.data_dir = data_dir
+        self.data_dir = data_dir or os.path.abspath("data")
+        self.export_dir = export_dir or os.path.abspath("exports")
         self._ensure_data_dir()
+        self._ensure_export_dir()
 
     def _ensure_data_dir(self) -> None:
         """Create data directory if it doesn't exist."""
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
+
+    def _ensure_export_dir(self) -> None:
+        """Create export directory if it doesn't exist."""
+        if not os.path.exists(self.export_dir):
+            os.makedirs(self.export_dir)
 
     def _get_file_path(self, year: str) -> str:
         """Get the file path for a specific school year.
@@ -88,17 +96,33 @@ class Storage:
         Returns:
             Dictionary with default empty structure
         """
+        # Load custom default weights if they exist
+        default_weights = {
+            "preferred_teacher": 5,
+            "priority_early_slot": 3,
+            "tandem_fulfilled": 4,
+            "teacher_pause_respected": 1,
+            "preserve_existing_plan": 10,
+        }
+
+        try:
+            import json
+
+            config_file = "default_weights.json"
+            if os.path.exists(config_file):
+                with open(config_file, "r", encoding="utf-8") as f:
+                    custom_weights = json.load(f)
+                    # Merge with defaults, prioritizing custom values
+                    default_weights.update(custom_weights)
+                    logger.debug("Loaded custom default weights")
+        except Exception as e:
+            logger.warning(f"Failed to load custom default weights: {e}")
+
         return {
             "teachers": {},
             "children": {},
             "tandems": {},
-            "weights": {
-                "preferred_teacher": 5,
-                "priority_early_slot": 3,
-                "tandem_fulfilled": 4,
-                "teacher_pause_respected": 1,
-                "preserve_existing_plan": 10,
-            },
+            "weights": default_weights,
             "schedule_results": [],  # List of saved schedule results with timestamps
             "current_schedule_id": None,  # ID of currently selected schedule result
         }
