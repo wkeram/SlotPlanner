@@ -1,0 +1,354 @@
+name: Version Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+      create_tag:
+        description: 'Create git tag'
+        required: true
+        type: boolean
+        default: true
+      pre_release:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: '3.13'
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag_exists: ${{ steps.check-tag.outputs.exists }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Validate version format
+        id: validate
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Validating version: $VERSION"
+          
+          # Use our version manager to validate
+          uv run python scripts/version-manager.py status
+          
+          # Validate semantic version format
+          if ! [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Version must follow semantic versioning (e.g., 1.0.0, 1.0.0-alpha.1)"
+            exit 1
+          fi
+          
+          echo "✅ Version format is valid"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check-tag
+        run: |
+          VERSION="${{ steps.validate.outputs.version }}"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "❌ Tag v$VERSION already exists!"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ Tag v$VERSION does not exist"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+  test-and-build:
+    needs: validate-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          uv run python scripts/version-manager.py set "$VERSION"
+
+      - name: Run tests
+        run: uv run python tests/test_runner.py fast
+        env:
+          QT_QPA_PLATFORM: ${{ matrix.os == 'ubuntu-latest' && 'offscreen' || '' }}
+
+      - name: Run linting
+        run: |
+          uv run ruff check app/ tests/
+          uv run black --check app/ tests/
+
+      - name: Run type checking
+        run: uv run mypy app/
+
+      - name: Build application (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          uv add pyinstaller
+          uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
+
+      - name: Build application (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          uv add pyinstaller
+          uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
+          # Create DMG
+          mkdir -p dmg
+          cp dist/SlotPlanner dmg/
+          hdiutil create -volname "SlotPlanner" -srcfolder dmg -ov -format UDZO SlotPlanner-macOS.dmg
+
+      - name: Build application (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          uv add pyinstaller
+          uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
+
+      - name: Upload Windows build
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: slotplanner-windows-${{ needs.validate-version.outputs.version }}
+          path: dist/SlotPlanner.exe
+          retention-days: 30
+
+      - name: Upload macOS build
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: slotplanner-macos-${{ needs.validate-version.outputs.version }}
+          path: |
+            dist/SlotPlanner
+            SlotPlanner-macOS.dmg
+          retention-days: 30
+
+      - name: Upload Linux build
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: slotplanner-linux-${{ needs.validate-version.outputs.version }}
+          path: dist/SlotPlanner
+          retention-days: 30
+
+  create-release:
+    needs: [validate-version, test-and-build]
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.create_tag == 'true' }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Update version in repository
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          uv run python scripts/version-manager.py set "$VERSION"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Commit version update
+          git add version.json
+          git commit -m "🔖 Bump version to $VERSION" || echo "No changes to commit"
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Organize release assets
+        run: |
+          mkdir -p release-assets
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          
+          # Windows executable
+          if [ -d "slotplanner-windows-$VERSION" ]; then
+            cp "slotplanner-windows-$VERSION/SlotPlanner.exe" "release-assets/SlotPlanner-Windows-v$VERSION.exe"
+          fi
+          
+          # macOS executable and DMG
+          if [ -d "slotplanner-macos-$VERSION" ]; then
+            cp "slotplanner-macos-$VERSION/SlotPlanner" "release-assets/SlotPlanner-macOS-v$VERSION"
+            if [ -f "slotplanner-macos-$VERSION/SlotPlanner-macOS.dmg" ]; then
+              cp "slotplanner-macos-$VERSION/SlotPlanner-macOS.dmg" "release-assets/SlotPlanner-macOS-v$VERSION.dmg"
+            fi
+          fi
+          
+          # Linux executable
+          if [ -d "slotplanner-linux-$VERSION" ]; then
+            cp "slotplanner-linux-$VERSION/SlotPlanner" "release-assets/SlotPlanner-Linux-v$VERSION"
+          fi
+          
+          echo "Release assets prepared:"
+          ls -la release-assets/
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          
+          # Get last tag for comparison
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline "$LAST_TAG"..HEAD --pretty=format:"- %s" | head -20)
+            CHANGELOG_LINK="https://github.com/${{ github.repository }}/compare/$LAST_TAG...v$VERSION"
+          else
+            COMMITS=$(git log --oneline --pretty=format:"- %s" | head -20)
+            CHANGELOG_LINK="https://github.com/${{ github.repository }}/commits/v$VERSION"
+          fi
+          
+          cat > release_notes.md << EOF
+          ## SlotPlanner v$VERSION
+          
+          ### What's Changed
+          $COMMITS
+          
+          ### Downloads
+          - **Windows**: \`SlotPlanner-Windows-v$VERSION.exe\` (Standalone executable)
+          - **macOS**: \`SlotPlanner-macOS-v$VERSION\` (Executable) or \`SlotPlanner-macOS-v$VERSION.dmg\` (Disk Image)
+          - **Linux**: \`SlotPlanner-Linux-v$VERSION\` (Executable)
+          
+          ### Installation
+          1. Download the appropriate file for your platform
+          2. **Windows**: Run the .exe file directly (no installation required)
+          3. **macOS**: Mount the .dmg file and drag to Applications, or run the executable directly
+          4. **Linux**: Make the file executable (\`chmod +x SlotPlanner-Linux-v$VERSION\`) and run
+          
+          ### System Requirements
+          - **Windows**: Windows 10/11 or later
+          - **macOS**: macOS 10.15 (Catalina) or later
+          - **Linux**: Modern Linux distribution with GUI support
+          - **From Source**: Python 3.13+ and uv package manager
+          
+          ---
+          
+          **Full Changelog**: $CHANGELOG_LINK
+          EOF
+          
+          echo "Release notes generated successfully"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.validate-version.outputs.version }}
+          name: SlotPlanner v${{ needs.validate-version.outputs.version }}
+          body_path: release_notes.md
+          files: release-assets/*
+          draft: false
+          prerelease: ${{ github.event.inputs.pre_release == 'true' }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push version update
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          
+          # Push the version commit (tag is created automatically by the release)
+          git push origin ${{ github.ref_name }}
+          
+          echo "✅ Version $VERSION released with tag v$VERSION"
+
+  update-main-branch:
+    needs: [validate-version, create-release]
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_name != 'main' && github.event.inputs.create_tag == 'true' }}
+    
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Update main branch with new version
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Update version on main branch
+          uv run python scripts/version-manager.py set "$VERSION"
+          
+          # Commit and push if there are changes
+          if git diff --quiet version.json; then
+            echo "No version changes needed on main branch"
+          else
+            git add version.json
+            git commit -m "🔖 Update main branch to version $VERSION"
+            git push origin main
+            echo "✅ Main branch updated to version $VERSION"
+          fi

@@ -1,0 +1,237 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  test-before-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Setup virtual display
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0
+
+    - name: Run full test suite
+      run: |
+        uv run python tests/test_runner.py all
+      env:
+        QT_QPA_PLATFORM: offscreen
+
+  build-windows:
+    needs: test-before-release
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+        uv add pyinstaller
+
+    - name: Build Windows executable
+      run: |
+        uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
+
+    - name: Test executable
+      run: |
+        dist/SlotPlanner.exe --version
+      continue-on-error: true
+
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SlotPlanner-Windows
+        path: dist/SlotPlanner.exe
+        retention-days: 90
+
+  build-macos:
+    needs: test-before-release  
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+        uv add pyinstaller
+
+    - name: Build macOS executable
+      run: |
+        uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
+
+    - name: Create DMG (optional)
+      run: |
+        mkdir -p dmg
+        cp dist/SlotPlanner dmg/
+        hdiutil create -volname "SlotPlanner" -srcfolder dmg -ov -format UDZO SlotPlanner-macOS.dmg
+      continue-on-error: true
+
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SlotPlanner-macOS
+        path: |
+          dist/SlotPlanner
+          SlotPlanner-macOS.dmg
+        retention-days: 90
+
+  build-linux:
+    needs: test-before-release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        enable-cache: true
+
+    - name: Set up Python 3.13
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+        uv add pyinstaller
+
+    - name: Build Linux executable
+      run: |
+        uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
+
+    - name: Create AppImage (optional)
+      run: |
+        wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+        mkdir -p AppDir/usr/bin
+        cp dist/SlotPlanner AppDir/usr/bin/
+        echo '[Desktop Entry]' > AppDir/SlotPlanner.desktop
+        echo 'Type=Application' >> AppDir/SlotPlanner.desktop
+        echo 'Name=SlotPlanner' >> AppDir/SlotPlanner.desktop
+        echo 'Exec=SlotPlanner' >> AppDir/SlotPlanner.desktop
+        echo 'Icon=SlotPlanner' >> AppDir/SlotPlanner.desktop
+        echo 'Categories=Office;' >> AppDir/SlotPlanner.desktop
+        ./appimagetool-x86_64.AppImage AppDir SlotPlanner-Linux.AppImage
+      continue-on-error: true
+
+    - name: Upload Linux artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SlotPlanner-Linux
+        path: |
+          dist/SlotPlanner
+          SlotPlanner-Linux.AppImage
+        retention-days: 90
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Create release assets
+      run: |
+        mkdir -p release-assets
+        
+        # Windows
+        if [ -d "SlotPlanner-Windows" ]; then
+          cp SlotPlanner-Windows/SlotPlanner.exe release-assets/SlotPlanner-Windows.exe
+        fi
+        
+        # macOS  
+        if [ -d "SlotPlanner-macOS" ]; then
+          cp SlotPlanner-macOS/SlotPlanner release-assets/SlotPlanner-macOS
+          if [ -f "SlotPlanner-macOS/SlotPlanner-macOS.dmg" ]; then
+            cp SlotPlanner-macOS/SlotPlanner-macOS.dmg release-assets/
+          fi
+        fi
+        
+        # Linux
+        if [ -d "SlotPlanner-Linux" ]; then
+          cp SlotPlanner-Linux/SlotPlanner release-assets/SlotPlanner-Linux
+          if [ -f "SlotPlanner-Linux/SlotPlanner-Linux.AppImage" ]; then
+            cp SlotPlanner-Linux/SlotPlanner-Linux.AppImage release-assets/
+          fi
+        fi
+        
+        ls -la release-assets/
+
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release-assets/*
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-test-results:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Publish test summary
+      run: |
+        echo "# Release Build Summary" 
+        echo ""
+        echo "## Build Results"
+        echo "- Windows Build: ${{ needs.build-windows.result }}"
+        echo "- macOS Build: ${{ needs.build-macos.result }}"  
+        echo "- Linux Build: ${{ needs.build-linux.result }}"
+        echo ""
+        echo "## Test Results"
+        echo "- Pre-release Tests: ${{ needs.test-before-release.result }}"
