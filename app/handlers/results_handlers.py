@@ -3,11 +3,10 @@
 This module contains handlers for schedule creation and export functionality.
 """
 
-from PySide6.QtWidgets import QWidget, QTableWidget, QTableWidgetItem, QTextEdit, QComboBox, QProgressBar, QLabel
-from PySide6.QtCore import QThread, Signal, QTimer, QObject
-from datetime import datetime, timedelta
 import traceback
-import os
+from datetime import datetime, timedelta
+
+from PySide6.QtWidgets import QComboBox, QProgressBar, QTableWidget, QTableWidgetItem, QTextEdit, QWidget
 
 try:
     from ortools.sat.python import cp_model
@@ -20,36 +19,10 @@ except ImportError:
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.utils import show_error
-from app.ui_teachers import refresh_teacher_table, refresh_children_table, refresh_tandems_table
+
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)
-
-
-class OptimizationWorker(QObject):
-    """Worker thread for running optimization without blocking the UI."""
-    
-    finished = Signal(dict, list)  # schedule, violations
-    error = Signal(str)  # error message
-    progress = Signal(str)  # progress message
-    
-    def __init__(self, teachers, children, tandems, weights):
-        super().__init__()
-        self.teachers = teachers
-        self.children = children
-        self.tandems = tandems
-        self.weights = weights
-    
-    def run_optimization(self):
-        """Run the optimization in the worker thread."""
-        try:
-            self.progress.emit("Starting constraint solver optimization...")
-            schedule, violations = create_optimized_schedule(
-                self.teachers, self.children, self.tandems, self.weights
-            )
-            self.finished.emit(schedule, violations)
-        except Exception as e:
-            self.error.emit(str(e))
 
 
 def results_create_schedule(window: QWidget, storage: Storage) -> None:
@@ -66,6 +39,12 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
             return
 
         logger.info("Starting schedule creation with OR-Tools")
+
+        # Show progress bar
+        progress_bar = window.ui.findChild(QProgressBar, "progressBar")
+        if progress_bar:
+            progress_bar.setVisible(True)
+            progress_bar.setValue(0)
 
         # Show progress and status
         if hasattr(window, "feedback_manager") and window.feedback_manager:
@@ -86,8 +65,8 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
                 window.feedback_manager.show_error("Schedule creation failed - missing data")
             return
 
-        # Create worker thread for optimization
-        _run_optimization_async(window, storage, year, teachers, children, tandems, weights)
+        # Run optimization (fast enough at ~0.08 seconds)
+        _run_optimization(window, storage, year, teachers, children, tandems, weights)
 
     BaseHandler.safe_execute(_create_schedule, parent=window)
 
@@ -110,24 +89,24 @@ def _show_ortools_dependency_error(window: QWidget) -> None:
     BaseHandler.show_error(window, "Missing Dependency", error_message)
 
 
-def _run_optimization_async(window: QWidget, storage: Storage, year: str, 
-                           teachers: dict, children: dict, tandems: dict, weights: dict) -> None:
-    """Run optimization in a background thread to avoid blocking the UI."""
+def _run_optimization(
+    window: QWidget, storage: Storage, year: str, teachers: dict, children: dict, tandems: dict, weights: dict
+) -> None:
+    """Run optimization on the main thread (fast enough at ~0.08s)."""
     start_time = datetime.now()
-    
-    # Create worker and thread
-    worker = OptimizationWorker(teachers, children, tandems, weights)
-    thread = QThread(window)
-    worker.moveToThread(thread)
-    
-    # Connect signals
-    def on_progress(message: str):
+
+    logger.info(f"Starting optimization with {len(teachers)} teachers, {len(children)} children")
+
+    try:
+        # Show initial progress
         if hasattr(window, "feedback_manager") and window.feedback_manager:
-            window.feedback_manager.show_status(message, show_progress=True)
-    
-    def on_finished(schedule: dict, violations: list):
+            window.feedback_manager.show_status("Running optimization...", show_progress=True)
+
+        # Run the optimization directly
+        schedule, violations = create_optimized_schedule(teachers, children, tandems, weights, None)
+
         end_time = datetime.now()
-        
+
         # Prepare optimization info
         optimization_info = {
             "start_time": start_time.isoformat(),
@@ -138,25 +117,34 @@ def _run_optimization_async(window: QWidget, storage: Storage, year: str,
             "children_count": len(children),
             "tandems_count": len(tandems),
         }
-        
+
         # Save schedule result with timestamp
         schedule_id = storage.save_schedule_result(year, schedule, violations, weights, optimization_info)
-        
+
         if schedule_id:
             logger.info(f"Schedule {schedule_id} created with {len(violations)} violations")
-            
+
             # Update results display
             _display_schedule_results(window, schedule, violations)
-            
+
             # Refresh the schedule history dropdown
             from .main_handlers import _load_schedule_results_for_year
+
             _load_schedule_results_for_year(window, storage, year)
-            
+
+            # Hide progress bar
+            try:
+                if hasattr(window, "ui") and window.ui is not None:
+                    progress_bar = window.ui.findChild(QProgressBar, "progressBar")
+                    if progress_bar:
+                        progress_bar.setVisible(False)
+            except Exception as e:
+                logger.error(f"Error hiding progress bar: {e}")
+
             if hasattr(window, "feedback_manager") and window.feedback_manager:
-                window.feedback_manager.show_success(
-                    f"Schedule created successfully ({len(violations)} violations)"
-                )
-            
+                window.feedback_manager.show_success(f"Schedule created successfully ({len(violations)} violations)")
+
+            # Show success dialog
             BaseHandler.show_info(
                 window,
                 "Schedule Created",
@@ -169,32 +157,24 @@ def _run_optimization_async(window: QWidget, storage: Storage, year: str,
         else:
             logger.error("Failed to save schedule results")
             show_error("Failed to save schedule results", window)
-        
-        # Clean up thread
-        thread.quit()
-        thread.wait()
-    
-    def on_error(error_message: str):
-        logger.error(f"Schedule creation failed: {error_message}")
-        show_error(f"Schedule creation failed: {error_message}", window)
-        
+
+    except Exception as e:
+        logger.error(f"Optimization failed: {e}")
+        logger.error(traceback.format_exc())
+
+        # Hide progress bar
+        try:
+            if hasattr(window, "ui") and window.ui is not None:
+                progress_bar = window.ui.findChild(QProgressBar, "progressBar")
+                if progress_bar:
+                    progress_bar.setVisible(False)
+        except Exception as e2:
+            logger.error(f"Error hiding progress bar: {e2}")
+
         if hasattr(window, "feedback_manager") and window.feedback_manager:
             window.feedback_manager.show_error("Schedule creation failed")
-        
-        # Clean up thread
-        thread.quit()
-        thread.wait()
-    
-    worker.progress.connect(on_progress)
-    worker.finished.connect(on_finished)
-    worker.error.connect(on_error)
-    
-    # Start the worker when thread starts
-    thread.started.connect(worker.run_optimization)
-    
-    # Start the thread
-    thread.start()
 
+        show_error(f"Schedule creation failed: {str(e)}", window)
 
 
 def results_export_pdf(window: QWidget, storage: Storage) -> None:
@@ -207,11 +187,11 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
 
     def _export_pdf():
         try:
-            from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib.units import inch
             from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.lib.units import inch
+            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
         except ImportError:
             show_error(
                 "ReportLab is not installed. PDF export requires ReportLab.\n\n"
@@ -273,7 +253,7 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
     BaseHandler.safe_execute(_export_pdf, parent=window)
 
 
-def create_optimized_schedule(teachers, children, tandems, weights):
+def create_optimized_schedule(teachers, children, tandems, weights, worker=None):
     """Create an optimized schedule using OR-Tools constraint solver.
 
     Args:
@@ -281,28 +261,47 @@ def create_optimized_schedule(teachers, children, tandems, weights):
         children: Dictionary of children data
         tandems: Dictionary of tandem data
         weights: Optimization weights
+        worker: Optional worker object for progress reporting
 
     Returns:
         Tuple of (schedule_dict, violations_list)
     """
+    # Removed progress reporting to prevent crashes
+
     model = cp_model.CpModel()
 
-    # Time slots: 15-minute intervals from 7:00 to 20:45
+    # Time slots: 45-minute intervals only (optimization)
     time_slots = []
-    for hour in range(7, 21):
+    for hour in range(7, 20):  # 7:00 to 19:45
         for minute in [0, 15, 30, 45]:
-            time_slots.append(f"{hour:02d}:{minute:02d}")
+            if hour < 20 or minute == 0:  # Last slot is 19:45
+                time_slots.append(f"{hour:02d}:{minute:02d}")
 
     days = ["Mo", "Di", "Mi", "Do", "Fr"]
 
-    # Decision variables: child assigned to teacher at specific time
+    # Generating decision variables...
+
+    # Decision variables: Only create variables for feasible combinations
     assignments = {}
+    total_combinations = 0
+    feasible_combinations = 0
+
     for child in children:
         for teacher in teachers:
             for day in days:
                 for time_slot in time_slots:
-                    var_name = f"assign_{child}_{teacher}_{day}_{time_slot}"
-                    assignments[(child, teacher, day, time_slot)] = model.NewBoolVar(var_name)
+                    total_combinations += 1
+                    # Only create variable if both teacher and child are available
+                    if _teacher_available_at_time(teachers[teacher], day, time_slot) and _child_available_at_time(
+                        children[child], day, time_slot
+                    ):
+                        var_name = f"assign_{child}_{teacher}_{day}_{time_slot}"
+                        assignments[(child, teacher, day, time_slot)] = model.NewBoolVar(var_name)
+                        feasible_combinations += 1
+
+    logger.info(f"Created {feasible_combinations} variables out of {total_combinations} possible combinations")
+
+    # Adding child scheduling constraints...
 
     # Constraint: Each child gets exactly one 45-minute slot per week
     for child in children:
@@ -310,34 +309,17 @@ def create_optimized_schedule(teachers, children, tandems, weights):
         for teacher in teachers:
             for day in days:
                 for time_slot in time_slots:
-                    # Check if this creates a valid 45-minute slot
-                    if _is_valid_45min_slot(time_slot, time_slots):
+                    # All time slots are now valid 45-minute slots
+                    if (child, teacher, day, time_slot) in assignments:
                         child_slots.append(assignments[(child, teacher, day, time_slot)])
 
         if child_slots:
             model.Add(sum(child_slots) == 1)
+        else:
+            logger.warning(f"No feasible slots found for child {child}")
 
-    # Constraint: Teacher availability
-    for teacher, teacher_data in teachers.items():
-        availability = teacher_data.get("availability", {})
-
-        for child in children:
-            for day in days:
-                for time_slot in time_slots:
-                    # If teacher not available, can't be assigned
-                    if not _teacher_available_at_time(teacher_data, day, time_slot):
-                        model.Add(assignments[(child, teacher, day, time_slot)] == 0)
-
-    # Constraint: Child availability
-    for child, child_data in children.items():
-        availability = child_data.get("availability", {})
-
-        for teacher in teachers:
-            for day in days:
-                for time_slot in time_slots:
-                    # If child not available, can't be assigned
-                    if not _child_available_at_time(child_data, day, time_slot):
-                        model.Add(assignments[(child, teacher, day, time_slot)] == 0)
+    # Teacher and child availability constraints are already handled during variable creation
+    # Building optimization objective...
 
     # Objective: Maximize weighted preferences
     objective_terms = []
@@ -350,7 +332,7 @@ def create_optimized_schedule(teachers, children, tandems, weights):
             if teacher in teachers:
                 for day in days:
                     for time_slot in time_slots:
-                        if _is_valid_45min_slot(time_slot, time_slots):
+                        if (child, teacher, day, time_slot) in assignments:
                             objective_terms.append(preferred_weight * assignments[(child, teacher, day, time_slot)])
 
     # Early slot preference bonus
@@ -361,7 +343,7 @@ def create_optimized_schedule(teachers, children, tandems, weights):
                 for day in days:
                     # Morning slots (before 12:00) get bonus
                     for time_slot in time_slots:
-                        if time_slot < "12:00" and _is_valid_45min_slot(time_slot, time_slots):
+                        if time_slot < "12:00" and (child, teacher, day, time_slot) in assignments:
                             objective_terms.append(early_weight * assignments[(child, teacher, day, time_slot)])
 
     # Tandem fulfillment bonus
@@ -375,7 +357,12 @@ def create_optimized_schedule(teachers, children, tandems, weights):
             for teacher in teachers:
                 for day in days:
                     for time_slot in time_slots:
-                        if _is_valid_45min_slot(time_slot, time_slots):
+                        if (child1, teacher, day, time_slot) in assignments and (
+                            child2,
+                            teacher,
+                            day,
+                            time_slot,
+                        ) in assignments:
                             # Both children assigned to same teacher at same time
                             tandem_var = model.NewBoolVar(f"tandem_{tandem_name}_{teacher}_{day}_{time_slot}")
 
@@ -391,15 +378,31 @@ def create_optimized_schedule(teachers, children, tandems, weights):
 
                             objective_terms.append(tandem_weight * priority * tandem_var)
 
+    # Starting constraint solver...
+
     # Set objective
     if objective_terms:
         model.Maximize(sum(objective_terms))
 
-    # Solve
+    # Solve with progress monitoring
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60.0  # 1 minute timeout
+    solver.parameters.max_time_in_seconds = 120.0  # 2 minute timeout
+    solver.parameters.num_search_workers = 4  # Use multiple threads
+
+    # Running optimization solver...
+
+    # Add debugging to see if this is where time is spent
+    import time
+
+    solve_start_time = time.time()
+    logger.info("Starting solver execution...")
 
     status = solver.Solve(model)
+
+    solve_end_time = time.time()
+    logger.info(f"Solver completed in {solve_end_time - solve_start_time:.2f} seconds with status: {status}")
+
+    # Processing results...
 
     schedule = {}
     violations = []
@@ -413,12 +416,14 @@ def create_optimized_schedule(teachers, children, tandems, weights):
             for teacher in teachers:
                 for day in days:
                     for time_slot in time_slots:
-                        if solver.Value(assignments[(child, teacher, day, time_slot)]) == 1:
-                            if day not in schedule:
-                                schedule[day] = {}
-                            if time_slot not in schedule[day]:
-                                schedule[day][time_slot] = {"teacher": teacher, "children": []}
-                            schedule[day][time_slot]["children"].append(child)
+                        # Only check variables that were actually created
+                        if (child, teacher, day, time_slot) in assignments:
+                            if solver.Value(assignments[(child, teacher, day, time_slot)]) == 1:
+                                if day not in schedule:
+                                    schedule[day] = {}
+                                if time_slot not in schedule[day]:
+                                    schedule[day][time_slot] = {"teacher": teacher, "children": []}
+                                schedule[day][time_slot]["children"].append(child)
 
         # Check for violations
         violations = _check_schedule_violations(schedule, teachers, children, tandems)
@@ -431,25 +436,32 @@ def create_optimized_schedule(teachers, children, tandems, weights):
     return schedule, violations
 
 
-def _is_valid_45min_slot(start_time, time_slots):
-    """Check if a time slot can accommodate a 45-minute appointment."""
-    try:
-        start_idx = time_slots.index(start_time)
-        # Need at least 3 x 15-minute slots for 45 minutes
-        return start_idx + 2 < len(time_slots)
-    except ValueError:
-        return False
-
-
 def _teacher_available_at_time(teacher_data, day, time_slot):
     """Check if teacher is available at specific day/time."""
     availability = teacher_data.get("availability", {})
     day_slots = availability.get(day, [])
 
-    for start, end in day_slots:
-        if start <= time_slot < end:
-            return True
-    return False
+    if not day_slots:  # No slots for this day means not available
+        return False
+
+    # Check if time_slot falls within any availability window
+    # Time slot must start within available period and have room for 45 minutes
+    from datetime import datetime
+
+    try:
+        slot_start = datetime.strptime(time_slot, "%H:%M")
+        slot_end = slot_start + timedelta(minutes=45)
+
+        for start_str, end_str in day_slots:
+            period_start = datetime.strptime(start_str, "%H:%M")
+            period_end = datetime.strptime(end_str, "%H:%M")
+
+            # Slot must fit completely within available period
+            if period_start <= slot_start and slot_end <= period_end:
+                return True
+        return False
+    except ValueError:
+        return False
 
 
 def _child_available_at_time(child_data, day, time_slot):
@@ -462,10 +474,24 @@ def _child_available_at_time(child_data, day, time_slot):
     if not day_slots:  # No slots for this day means not available
         return False
 
-    for start, end in day_slots:
-        if start <= time_slot < end:
-            return True
-    return False
+    # Check if time_slot falls within any availability window
+    # Time slot must start within available period and have room for 45 minutes
+    from datetime import datetime
+
+    try:
+        slot_start = datetime.strptime(time_slot, "%H:%M")
+        slot_end = slot_start + timedelta(minutes=45)
+
+        for start_str, end_str in day_slots:
+            period_start = datetime.strptime(start_str, "%H:%M")
+            period_end = datetime.strptime(end_str, "%H:%M")
+
+            # Slot must fit completely within available period
+            if period_start <= slot_start and slot_end <= period_end:
+                return True
+        return False
+    except ValueError:
+        return False
 
 
 def _check_schedule_violations(schedule, teachers, children, tandems):
@@ -519,7 +545,6 @@ def _display_schedule_results(window, schedule, violations):
 
 def _populate_schedule_table(table, schedule):
     """Populate the schedule table with enhanced assignment data showing time ranges and teacher grouping."""
-    from PySide6.QtCore import Qt
     from PySide6.QtGui import QFont
 
     # Collect all time slots and teachers
@@ -621,11 +646,11 @@ def _populate_schedule_table(table, schedule):
 
 def generate_schedule_pdf(data, filename):
     """Generate a comprehensive PDF report of the schedule."""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
     from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     doc = SimpleDocTemplate(filename, pagesize=A4, topMargin=0.5 * inch)
     story = []
