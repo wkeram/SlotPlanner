@@ -12,6 +12,7 @@ from PySide6.QtCore import QFile, QIODevice
 from app.storage import Storage
 from app import handlers
 from app.config.logging_config import get_logger
+from app.ui_feedback import create_feedback_manager
 from datetime import datetime
 
 logger = get_logger(__name__)
@@ -38,6 +39,7 @@ class SlotPlannerApp(QMainWindow):
             # Load and setup UI
             self.setup_ui()
             self.setup_callbacks()
+            self.setup_feedback_system()
             self.initialize_data()
             
             logger.info("SlotPlanner application initialized successfully")
@@ -173,8 +175,21 @@ class SlotPlannerApp(QMainWindow):
             logger.error(f"Failed to connect {button_name}: {e}")
             logger.error(traceback.format_exc())
     
+    def setup_feedback_system(self):
+        """Initialize the UI feedback and validation system."""
+        try:
+            self.feedback_manager = create_feedback_manager(self)
+            self.feedback_manager.show_ready()
+            logger.info("UI feedback system initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize UI feedback system: {e}")
+            self.feedback_manager = None
+    
     def initialize_data(self):
         """Initialize the application with default data and populate year dropdown."""
+        if hasattr(self, 'feedback_manager') and self.feedback_manager:
+            self.feedback_manager.show_status("Initializing application data...", show_progress=True)
+        
         # Populate year dropdown with current and next school years
         current_year = datetime.now().year
         combo_year = self.ui.findChild(QComboBox, "comboYearSelect")
@@ -193,6 +208,9 @@ class SlotPlannerApp(QMainWindow):
         
         # Initialize empty tables
         handlers.main_on_load_clicked(self, self.storage)
+        
+        if hasattr(self, 'feedback_manager') and self.feedback_manager:
+            self.feedback_manager.show_ready()
     
     def closeEvent(self, event):
         """Handle application close event with unsaved changes check."""

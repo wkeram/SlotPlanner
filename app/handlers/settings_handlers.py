@@ -7,6 +7,7 @@ including optimization weights and configuration management.
 from PySide6.QtWidgets import QWidget, QSpinBox, QComboBox, QMessageBox
 from app.config.logging_config import get_logger
 from app.storage import Storage
+from app.validation import Validator
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)
@@ -77,6 +78,25 @@ def settings_save_weights(window: QWidget, storage: Storage) -> None:
             if spin_box:
                 weights[key] = spin_box.value()
                 saved_count += 1
+        
+        # Validate weights before saving
+        weight_validation = Validator.validate_optimization_weights(weights)
+        if not weight_validation.is_valid:
+            from app.utils import show_error
+            show_error(f"Weight validation failed:\n\n{weight_validation.get_error_message()}", window)
+            return
+        
+        # Show warnings if any
+        if weight_validation.has_warnings:
+            reply = QMessageBox.question(
+                window,
+                "Weight Warnings",
+                f"The following warnings were found:\n\n{weight_validation.get_warning_message()}\n\nDo you want to continue?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            if reply != QMessageBox.Yes:
+                return
         
         data["weights"] = weights
         success = storage.save(year, data)
