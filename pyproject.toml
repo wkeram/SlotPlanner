@@ -1,6 +1,6 @@
 [project]
 name = "slotplanner"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A lightweight desktop app for weekly time slot planning using constraint optimization. Designed for schools or similar settings to assign children to available teachers or therapists with customizable preferences, tandem rules, and PDF export."
 readme = "README.md"
 authors = [
@@ -117,6 +117,16 @@ extend-exclude = '''
 profile = "black"
 line_length = 120
 multi_line_output = 3
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.setuptools.dynamic]
+version = {attr = "app.version.__version__"}
 
 [tool.mypy]
 python_version = "3.13"

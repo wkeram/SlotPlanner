@@ -234,6 +234,52 @@ uv run ruff check app/ tests/   # Lint code
 uv run mypy app/                # Type checking
 ```
 
+### Version Management
+SlotPlanner uses semantic versioning with centralized version management. All version operations are handled through the version manager script:
+
+```bash
+# Check current version status
+uv run python scripts/version-manager.py status
+
+# Set a specific version
+uv run python scripts/version-manager.py set 1.0.0
+
+# Bump version parts (for development)
+uv run python scripts/version-manager.py bump patch   # Bug fixes
+uv run python scripts/version-manager.py bump minor   # New features
+uv run python scripts/version-manager.py bump major   # Breaking changes
+
+# Create pre-release versions
+uv run python scripts/version-manager.py set 1.1.0-alpha.1
+uv run python scripts/version-manager.py set 1.1.0-beta.1
+uv run python scripts/version-manager.py set 1.1.0-rc.1
+
+# Release with git tag
+uv run python scripts/version-manager.py set 1.0.0 --tag
+```
+
+#### Version Update Workflow
+1. **During Development**: Use `bump patch/minor/major` for incremental changes
+2. **Pre-Release Testing**: Create alpha/beta versions for testing cycles  
+3. **Release Process**: 
+   - **Local**: Use `set X.Y.Z --tag` to create version and git tag
+   - **Automated**: Trigger GitHub "Version Release" workflow for full CI/CD pipeline
+
+#### Automated Release Process
+The GitHub Actions workflow handles the complete release pipeline:
+- ✅ Version validation and conflict checking
+- ✅ Multi-platform testing (Windows, macOS, Linux)
+- ✅ Quality gates (linting, type checking, tests)
+- ✅ Cross-platform executable builds
+- ✅ GitHub release creation with auto-generated notes
+- ✅ Git tag management on main branch
+
+Version information is centrally managed in `version.json` and automatically synchronized across:
+- Application UI (About dialog, window title)
+- Package builds (`pyproject.toml`)  
+- Release artifacts and documentation
+- Git tags and GitHub releases
+
 ### Test Coverage
 The project maintains comprehensive test coverage including:
 - **Optimizer Tests**: 25+ tests covering constraint optimization, weight handling, and edge cases

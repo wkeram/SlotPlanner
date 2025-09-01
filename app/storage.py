@@ -41,61 +41,61 @@ class Storage:
 
     def _validate_year_format(self, year: str) -> bool:
         """Validate that year follows the expected YYYY_YYYY format.
-        
+
         Args:
             year: School year string to validate
-            
+
         Returns:
             True if year format is valid, False otherwise
         """
         if not isinstance(year, str):
             return False
-        
+
         # Check for basic format YYYY_YYYY where YYYY are 4-digit years
-        pattern = r'^\d{4}_\d{4}$'
+        pattern = r"^\d{4}_\d{4}$"
         if not re.match(pattern, year):
             return False
-        
+
         # Additional validation: years should be consecutive
         try:
-            year1, year2 = year.split('_')
+            year1, year2 = year.split("_")
             year1_int = int(year1)
             year2_int = int(year2)
-            
+
             # School year should be consecutive (e.g., 2023_2024)
             if year2_int != year1_int + 1:
                 return False
-                
+
             # Reasonable year range (1900-2100)
             if year1_int < 1900 or year1_int > 2100:
                 return False
-                
+
             return True
         except (ValueError, IndexError):
             return False
-    
+
     def _sanitize_filename(self, filename: str) -> str:
         """Sanitize filename to prevent directory traversal attacks.
-        
+
         Args:
             filename: Filename to sanitize
-            
+
         Returns:
             Sanitized filename safe for use
         """
         # Remove any path separators and dangerous characters
         filename = os.path.basename(filename)
-        
+
         # Remove any remaining dangerous patterns
-        dangerous_patterns = ['..', '~', '$', '`', '|', ';', '&']
+        dangerous_patterns = ["..", "~", "$", "`", "|", ";", "&"]
         for pattern in dangerous_patterns:
-            filename = filename.replace(pattern, '')
-        
+            filename = filename.replace(pattern, "")
+
         # Ensure it only contains safe characters
-        filename = re.sub(r'[^a-zA-Z0-9_.-]', '', filename)
-        
+        filename = re.sub(r"[^a-zA-Z0-9_.-]", "", filename)
+
         return filename
-    
+
     def _get_file_path(self, year: str) -> str:
         """Get the file path for a specific school year with security validation.
 
@@ -104,29 +104,29 @@ class Storage:
 
         Returns:
             Full path to the JSON file
-            
+
         Raises:
             ValueError: If year format is invalid or contains unsafe characters
         """
         if not self._validate_year_format(year):
             raise ValueError(f"Invalid year format: '{year}'. Expected format: YYYY_YYYY (e.g., 2023_2024)")
-        
+
         # Additional sanitization as defense in depth
         safe_year = self._sanitize_filename(year)
-        
+
         # Double-check that sanitization didn't break the year format
         if not self._validate_year_format(safe_year):
             raise ValueError(f"Year format became invalid after sanitization: '{safe_year}'")
-        
+
         file_path = os.path.join(self.data_dir, f"{safe_year}.json")
-        
+
         # Final security check: ensure the resolved path is within data_dir
         resolved_path = os.path.abspath(file_path)
         data_dir_abs = os.path.abspath(self.data_dir)
-        
+
         if not resolved_path.startswith(data_dir_abs + os.sep) and resolved_path != data_dir_abs:
             raise ValueError(f"File path escapes data directory: '{resolved_path}'")
-        
+
         return file_path
 
     def load(self, year: str) -> Optional[Dict[str, Any]]:
@@ -174,7 +174,7 @@ class Storage:
         except ValueError as e:
             logger.error(f"Invalid year format for saving: {e}")
             return False
-        
+
         # Validate data structure before saving
         if not isinstance(data, dict):
             logger.error(f"Invalid data type for saving: expected dict, got {type(data)}")

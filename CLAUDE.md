@@ -53,6 +53,26 @@ uv run ruff check app/ tests/
 uv run mypy app/
 ```
 
+### Version Management
+```bash
+# Show current version status
+uv run python scripts/version-manager.py status
+
+# Set a specific version
+uv run python scripts/version-manager.py set 1.0.0
+
+# Set version and create git tag
+uv run python scripts/version-manager.py set 1.0.0 --tag
+
+# Bump version parts
+uv run python scripts/version-manager.py bump major
+uv run python scripts/version-manager.py bump minor
+uv run python scripts/version-manager.py bump patch
+
+# Create git tag for current version
+uv run python scripts/version-manager.py tag
+```
+
 ## Project Status
 
 SlotPlanner is a **production-ready** PySide6 desktop application with comprehensive CI/CD pipeline. Core functionality is implemented including:
@@ -112,7 +132,11 @@ app/
 ├── gui.py            # Main GUI initialization
 ├── ui_feedback.py    # Real-time validation feedback
 ├── utils.py          # Translations and error dialogs
-└── config/           # Logging and configuration
+├── version.py        # Centralized version management
+├── config/           # Logging and configuration
+scripts/
+└── version-manager.py # Version management CLI tool
+version.json          # Single source of truth for version
 ```
 
 ### Data Flow
@@ -136,3 +160,36 @@ The application uses Qt Designer `.ui` files for UI layout, loaded at runtime vi
 - Children require exactly one 45-minute slot per week
 - Tandems (pairs of children) can share slots with same teacher
 - Weighted optimization objectives include teacher preferences, early time preferences, tandem fulfillment, and stability between planning cycles
+
+## Versioning and Releases
+
+SlotPlanner uses semantic versioning (SemVer) with centralized version management.
+
+### Version Management System
+- **Single Source of Truth**: `version.json` contains the authoritative version
+- **Dynamic Loading**: Application and build system read version from `version.json`
+- **Validation**: Version format and git tag conflicts are validated before release
+- **Automation**: GitHub Actions workflow handles building, testing, and releases
+
+### Release Process
+1. **Pre-Release**: Run `uv run python scripts/version-manager.py status` to check current state
+2. **Version Check**: Use `scripts/version-manager.py` to validate new version doesn't exist
+3. **Set Version**: Run `uv run python scripts/version-manager.py set X.Y.Z` to update version
+4. **GitHub Release**: Trigger "Version Release" workflow with version number
+5. **Automated Steps**: 
+   - Validates version format and checks for existing tags
+   - Runs tests and builds for all platforms (Windows, macOS, Linux)
+   - Creates GitHub release with artifacts and auto-generated notes
+   - Creates and pushes git tag to main branch
+
+### Version Guidelines
+- **Major** (X.0.0): Breaking changes, major new features
+- **Minor** (X.Y.0): New features, backwards compatible
+- **Patch** (X.Y.Z): Bug fixes, small improvements
+- **Pre-release**: X.Y.Z-alpha.N, X.Y.Z-beta.N for testing versions
+
+### Important Notes
+- NEVER manually edit version numbers in code files
+- Always use the version management script for consistency
+- The GitHub Actions workflow ensures no duplicate tags are created
+- Version updates are automatically synced between feature branches and main

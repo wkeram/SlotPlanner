@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QComboBox, QTableWidget, QMessageBox, QWidget, QSp
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.ui_teachers import refresh_teacher_table, refresh_children_table, refresh_tandems_table
+from app.version import get_version
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)
@@ -626,8 +627,8 @@ def main_show_about(window: QWidget) -> None:
     Args:
         window: Main application window instance
     """
-    about_text = """<h2>SlotPlanner</h2>
-    <p><b>Version:</b> 1.0.0</p>
+    about_text = f"""<h2>SlotPlanner</h2>
+    <p><b>Version:</b> {get_version()}</p>
     <p><b>Description:</b> Weekly Schedule Optimizer</p>
     <br>
     <p>A desktop application for intelligent weekly time slot planning using constraint optimization.</p>
