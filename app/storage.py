@@ -6,6 +6,7 @@ tandems, optimization weights, and scheduling results.
 
 import json
 import os
+import re
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from app.config.logging_config import get_logger
@@ -38,16 +39,95 @@ class Storage:
         if not os.path.exists(self.export_dir):
             os.makedirs(self.export_dir)
 
+    def _validate_year_format(self, year: str) -> bool:
+        """Validate that year follows the expected YYYY_YYYY format.
+        
+        Args:
+            year: School year string to validate
+            
+        Returns:
+            True if year format is valid, False otherwise
+        """
+        if not isinstance(year, str):
+            return False
+        
+        # Check for basic format YYYY_YYYY where YYYY are 4-digit years
+        pattern = r'^\d{4}_\d{4}$'
+        if not re.match(pattern, year):
+            return False
+        
+        # Additional validation: years should be consecutive
+        try:
+            year1, year2 = year.split('_')
+            year1_int = int(year1)
+            year2_int = int(year2)
+            
+            # School year should be consecutive (e.g., 2023_2024)
+            if year2_int != year1_int + 1:
+                return False
+                
+            # Reasonable year range (1900-2100)
+            if year1_int < 1900 or year1_int > 2100:
+                return False
+                
+            return True
+        except (ValueError, IndexError):
+            return False
+    
+    def _sanitize_filename(self, filename: str) -> str:
+        """Sanitize filename to prevent directory traversal attacks.
+        
+        Args:
+            filename: Filename to sanitize
+            
+        Returns:
+            Sanitized filename safe for use
+        """
+        # Remove any path separators and dangerous characters
+        filename = os.path.basename(filename)
+        
+        # Remove any remaining dangerous patterns
+        dangerous_patterns = ['..', '~', '$', '`', '|', ';', '&']
+        for pattern in dangerous_patterns:
+            filename = filename.replace(pattern, '')
+        
+        # Ensure it only contains safe characters
+        filename = re.sub(r'[^a-zA-Z0-9_.-]', '', filename)
+        
+        return filename
+    
     def _get_file_path(self, year: str) -> str:
-        """Get the file path for a specific school year.
+        """Get the file path for a specific school year with security validation.
 
         Args:
             year: School year in format "YYYY_YYYY"
 
         Returns:
             Full path to the JSON file
+            
+        Raises:
+            ValueError: If year format is invalid or contains unsafe characters
         """
-        return os.path.join(self.data_dir, f"{year}.json")
+        if not self._validate_year_format(year):
+            raise ValueError(f"Invalid year format: '{year}'. Expected format: YYYY_YYYY (e.g., 2023_2024)")
+        
+        # Additional sanitization as defense in depth
+        safe_year = self._sanitize_filename(year)
+        
+        # Double-check that sanitization didn't break the year format
+        if not self._validate_year_format(safe_year):
+            raise ValueError(f"Year format became invalid after sanitization: '{safe_year}'")
+        
+        file_path = os.path.join(self.data_dir, f"{safe_year}.json")
+        
+        # Final security check: ensure the resolved path is within data_dir
+        resolved_path = os.path.abspath(file_path)
+        data_dir_abs = os.path.abspath(self.data_dir)
+        
+        if not resolved_path.startswith(data_dir_abs + os.sep) and resolved_path != data_dir_abs:
+            raise ValueError(f"File path escapes data directory: '{resolved_path}'")
+        
+        return file_path
 
     def load(self, year: str) -> Optional[Dict[str, Any]]:
         """Load data for a specific school year.
@@ -58,14 +138,23 @@ class Storage:
         Returns:
             Dictionary containing all data for the year, or None if file doesn't exist
         """
-        file_path = self._get_file_path(year)
+        try:
+            file_path = self._get_file_path(year)
+        except ValueError as e:
+            logger.error(f"Invalid year format for loading: {e}")
+            return None
 
         if not os.path.exists(file_path):
             return None
 
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Basic validation of loaded data structure
+                if not isinstance(data, dict):
+                    logger.error(f"Invalid data format in {year}.json - expected dictionary")
+                    return None
+                return data
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error loading data for {year}: {e}")
             return None
@@ -80,13 +169,22 @@ class Storage:
         Returns:
             True if successful, False otherwise
         """
-        file_path = self._get_file_path(year)
+        try:
+            file_path = self._get_file_path(year)
+        except ValueError as e:
+            logger.error(f"Invalid year format for saving: {e}")
+            return False
+        
+        # Validate data structure before saving
+        if not isinstance(data, dict):
+            logger.error(f"Invalid data type for saving: expected dict, got {type(data)}")
+            return False
 
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
-        except IOError as e:
+        except (IOError, TypeError) as e:
             logger.error(f"Error saving data for {year}: {e}")
             return False
 
@@ -136,7 +234,10 @@ class Storage:
         Returns:
             True if file exists, False otherwise
         """
-        return os.path.exists(self._get_file_path(year))
+        try:
+            return os.path.exists(self._get_file_path(year))
+        except ValueError:
+            return False
 
     def list_years(self) -> list[str]:
         """Get list of all available school years.
@@ -164,7 +265,11 @@ class Storage:
         Returns:
             True if successful, False otherwise
         """
-        file_path = self._get_file_path(year)
+        try:
+            file_path = self._get_file_path(year)
+        except ValueError as e:
+            logger.error(f"Invalid year format for deletion: {e}")
+            return False
 
         try:
             if os.path.exists(file_path):

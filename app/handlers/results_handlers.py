@@ -4,7 +4,7 @@ This module contains handlers for schedule creation and export functionality.
 """
 
 from PySide6.QtWidgets import QWidget, QTableWidget, QTableWidgetItem, QTextEdit, QComboBox, QProgressBar, QLabel
-from PySide6.QtCore import QThread, Signal, QTimer
+from PySide6.QtCore import QThread, Signal, QTimer, QObject
 from datetime import datetime, timedelta
 import traceback
 import os
@@ -26,6 +26,32 @@ from .base_handler import BaseHandler
 logger = get_logger(__name__)
 
 
+class OptimizationWorker(QObject):
+    """Worker thread for running optimization without blocking the UI."""
+    
+    finished = Signal(dict, list)  # schedule, violations
+    error = Signal(str)  # error message
+    progress = Signal(str)  # progress message
+    
+    def __init__(self, teachers, children, tandems, weights):
+        super().__init__()
+        self.teachers = teachers
+        self.children = children
+        self.tandems = tandems
+        self.weights = weights
+    
+    def run_optimization(self):
+        """Run the optimization in the worker thread."""
+        try:
+            self.progress.emit("Starting constraint solver optimization...")
+            schedule, violations = create_optimized_schedule(
+                self.teachers, self.children, self.tandems, self.weights
+            )
+            self.finished.emit(schedule, violations)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 def results_create_schedule(window: QWidget, storage: Storage) -> None:
     """Create the optimized schedule using constraint solver.
 
@@ -36,11 +62,7 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
 
     def _create_schedule():
         if not ORTOOLS_AVAILABLE:
-            show_error(
-                "OR-Tools is not installed. Schedule optimization requires OR-Tools.\n\n"
-                "Please install with: pip install ortools",
-                window,
-            )
+            _show_ortools_dependency_error(window)
             return
 
         logger.info("Starting schedule creation with OR-Tools")
@@ -64,64 +86,115 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
                 window.feedback_manager.show_error("Schedule creation failed - missing data")
             return
 
-        # Create and run solver
-        try:
-            start_time = datetime.now()
-            schedule, violations = create_optimized_schedule(teachers, children, tandems, weights)
-            end_time = datetime.now()
-
-            # Prepare optimization info
-            optimization_info = {
-                "start_time": start_time.isoformat(),
-                "end_time": end_time.isoformat(),
-                "runtime_seconds": (end_time - start_time).total_seconds(),
-                "solver_status": "optimal" if not violations else "feasible",
-                "teachers_count": len(teachers),
-                "children_count": len(children),
-                "tandems_count": len(tandems),
-            }
-
-            # Save schedule result with timestamp
-            schedule_id = storage.save_schedule_result(year, schedule, violations, weights, optimization_info)
-
-            if schedule_id:
-                logger.info(f"Schedule {schedule_id} created with {len(violations)} violations")
-
-                # Update results display
-                _display_schedule_results(window, schedule, violations)
-
-                # Refresh the schedule history dropdown
-                from .main_handlers import _load_schedule_results_for_year
-
-                _load_schedule_results_for_year(window, storage, year)
-
-                if hasattr(window, "feedback_manager") and window.feedback_manager:
-                    window.feedback_manager.show_success(
-                        f"Schedule created successfully ({len(violations)} violations)"
-                    )
-
-                BaseHandler.show_info(
-                    window,
-                    "Schedule Created",
-                    f"Optimization completed!\n\n"
-                    f"Schedule ID: {schedule_id}\n"
-                    f"Runtime: {optimization_info['runtime_seconds']:.2f} seconds\n"
-                    f"Violations: {len(violations)}\n\n"
-                    f"Check the Results tab for details.",
-                )
-            else:
-                logger.error("Failed to save schedule results")
-                show_error("Failed to save schedule results", window)
-
-        except Exception as e:
-            logger.error(f"Schedule creation failed: {e}")
-            logger.error(traceback.format_exc())
-            show_error(f"Schedule creation failed: {str(e)}", window)
-
-            if hasattr(window, "feedback_manager") and window.feedback_manager:
-                window.feedback_manager.show_error("Schedule creation failed")
+        # Create worker thread for optimization
+        _run_optimization_async(window, storage, year, teachers, children, tandems, weights)
 
     BaseHandler.safe_execute(_create_schedule, parent=window)
+
+
+def _show_ortools_dependency_error(window: QWidget) -> None:
+    """Show comprehensive OR-Tools dependency error with installation guidance."""
+    error_message = (
+        "OR-Tools Constraint Solver Not Available\n\n"
+        "SlotPlanner requires OR-Tools for schedule optimization. "
+        "Please install it using one of these methods:\n\n"
+        "Method 1 - Using uv (recommended):\n"
+        "  uv add ortools\n\n"
+        "Method 2 - Using pip:\n"
+        "  pip install ortools\n\n"
+        "Method 3 - Using conda:\n"
+        "  conda install -c conda-forge ortools-python\n\n"
+        "After installation, please restart the application.\n\n"
+        "For more information, visit: https://developers.google.com/optimization/install"
+    )
+    BaseHandler.show_error(window, "Missing Dependency", error_message)
+
+
+def _run_optimization_async(window: QWidget, storage: Storage, year: str, 
+                           teachers: dict, children: dict, tandems: dict, weights: dict) -> None:
+    """Run optimization in a background thread to avoid blocking the UI."""
+    start_time = datetime.now()
+    
+    # Create worker and thread
+    worker = OptimizationWorker(teachers, children, tandems, weights)
+    thread = QThread(window)
+    worker.moveToThread(thread)
+    
+    # Connect signals
+    def on_progress(message: str):
+        if hasattr(window, "feedback_manager") and window.feedback_manager:
+            window.feedback_manager.show_status(message, show_progress=True)
+    
+    def on_finished(schedule: dict, violations: list):
+        end_time = datetime.now()
+        
+        # Prepare optimization info
+        optimization_info = {
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+            "runtime_seconds": (end_time - start_time).total_seconds(),
+            "solver_status": "optimal" if not violations else "feasible",
+            "teachers_count": len(teachers),
+            "children_count": len(children),
+            "tandems_count": len(tandems),
+        }
+        
+        # Save schedule result with timestamp
+        schedule_id = storage.save_schedule_result(year, schedule, violations, weights, optimization_info)
+        
+        if schedule_id:
+            logger.info(f"Schedule {schedule_id} created with {len(violations)} violations")
+            
+            # Update results display
+            _display_schedule_results(window, schedule, violations)
+            
+            # Refresh the schedule history dropdown
+            from .main_handlers import _load_schedule_results_for_year
+            _load_schedule_results_for_year(window, storage, year)
+            
+            if hasattr(window, "feedback_manager") and window.feedback_manager:
+                window.feedback_manager.show_success(
+                    f"Schedule created successfully ({len(violations)} violations)"
+                )
+            
+            BaseHandler.show_info(
+                window,
+                "Schedule Created",
+                f"Optimization completed!\n\n"
+                f"Schedule ID: {schedule_id}\n"
+                f"Runtime: {optimization_info['runtime_seconds']:.2f} seconds\n"
+                f"Violations: {len(violations)}\n\n"
+                f"Check the Results tab for details.",
+            )
+        else:
+            logger.error("Failed to save schedule results")
+            show_error("Failed to save schedule results", window)
+        
+        # Clean up thread
+        thread.quit()
+        thread.wait()
+    
+    def on_error(error_message: str):
+        logger.error(f"Schedule creation failed: {error_message}")
+        show_error(f"Schedule creation failed: {error_message}", window)
+        
+        if hasattr(window, "feedback_manager") and window.feedback_manager:
+            window.feedback_manager.show_error("Schedule creation failed")
+        
+        # Clean up thread
+        thread.quit()
+        thread.wait()
+    
+    worker.progress.connect(on_progress)
+    worker.finished.connect(on_finished)
+    worker.error.connect(on_error)
+    
+    # Start the worker when thread starts
+    thread.started.connect(worker.run_optimization)
+    
+    # Start the thread
+    thread.start()
+
 
 
 def results_export_pdf(window: QWidget, storage: Storage) -> None:
