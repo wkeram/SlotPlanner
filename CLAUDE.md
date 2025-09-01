@@ -53,9 +53,18 @@ uv run ruff check app/ tests/
 uv run mypy app/
 ```
 
-## Requirements
+## Project Status
 
-Functional requirements and planned or implemented features are documented in `README.md`. Those requirements always need to be respected when implementing new features!
+SlotPlanner is a **production-ready** PySide6 desktop application with comprehensive CI/CD pipeline. Core functionality is implemented including:
+
+- ✅ Teacher management with availability scheduling  
+- ✅ OR-Tools constraint optimization engine
+- ✅ PDF export of weekly schedules
+- ✅ JSON data persistence per school year
+- ✅ Real-time UI feedback and validation
+- 🔄 Child and tandem management (UI in progress)
+
+Functional requirements are documented in `README.md` and must be respected when implementing new features.
 
 ## Code Editing Rules
 
@@ -82,29 +91,33 @@ SlotPlanner is a PySide6-based desktop application for optimizing weekly schedul
 - **Data Layer**: JSON-based persistence in `app/storage.py`
   - One file per school year: `data/YYYY_YYYY.json`
   - Stores teachers, children, tandems, optimization weights
-- **Business Logic**: Constraint optimization solver in `app/logic.py`
+- **Business Logic**: Constraint optimization in `app/handlers/results_handlers.py`
   - Uses OR-Tools for constraint programming
   - Time model: 45min slots, 15min raster (8:00, 8:15, etc.)
-- **Event Handling**: UI interactions managed in `app/handlers.py`
-- **PDF Export**: Schedule generation in `app/export_pdf.py`
+- **Event Handling**: UI interactions managed in `app/handlers/` modules
+- **PDF Export**: Schedule generation in `app/handlers/results_handlers.py`
 
 ### Key Components
 ```
 app/
-├── handlers.py      # UI event handlers and business logic flow
-├── storage.py       # JSON data persistence layer
-├── logic.py         # OR-Tools constraint solver
-├── model.py         # Data structures (Teacher, Child, Tandem)
-├── export_pdf.py    # PDF generation for schedules
-├── utils.py         # Translations and error dialogs
-├── gui.py           # Main GUI initialization
-└── config/          # Translation files and settings
+├── handlers/           # Modular UI event handlers
+│   ├── main_handlers.py      # Application lifecycle
+│   ├── teacher_handlers.py   # Teacher management
+│   ├── child_handlers.py     # Child management (TODO)
+│   ├── tandem_handlers.py    # Tandem management (TODO)
+│   ├── settings_handlers.py  # Weight configuration
+│   └── results_handlers.py   # OR-Tools solver & PDF export
+├── storage.py         # JSON data persistence layer
+├── gui.py            # Main GUI initialization
+├── ui_feedback.py    # Real-time validation feedback
+├── utils.py          # Translations and error dialogs
+└── config/           # Logging and configuration
 ```
 
 ### Data Flow
 1. UI collects data via table widgets and forms
 2. Data persisted as JSON via `storage.py`
-3. Solver (`logic.py`) reads JSON + weights to optimize schedule
+3. Solver (`results_handlers.py`) reads JSON + weights to optimize schedule
 4. Results displayed in tables with violation reports
 5. PDF export generates printable schedules
 
@@ -115,7 +128,7 @@ app/
 - **PyInstaller**: Creates standalone Windows executable via GitHub Actions
 
 ### UI Architecture
-The application uses Qt Designer `.ui` files for UI layout, loaded at runtime via `QUiLoader`. Event handlers in `handlers.py` connect UI interactions to business logic. All UI state changes trigger immediate data persistence to maintain consistency.
+The application uses Qt Designer `.ui` files for UI layout, loaded at runtime via `QUiLoader`. Modular event handlers in `app/handlers/` connect UI interactions to business logic. All UI state changes trigger immediate data persistence to maintain consistency.
 
 ### Constraint Model
 - Teachers have weekly availability patterns

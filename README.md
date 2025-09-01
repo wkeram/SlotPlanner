@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/wkeram/SlotPlanner/workflows/Tests/badge.svg)](https://github.com/wkeram/SlotPlanner/actions/workflows/test.yml)
 [![Coverage Status](https://codecov.io/gh/wkeram/SlotPlanner/branch/main/graph/badge.svg)](https://codecov.io/gh/wkeram/SlotPlanner)
-[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
+[![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/wkeram/SlotPlanner)](https://github.com/wkeram/SlotPlanner/releases)
 
@@ -80,9 +80,9 @@ preserve_existing_plan = 10
 
 ### 7. **Application Functionality**
 
-* GUI-based desktop application (`tkinter`)
+* GUI-based desktop application (PySide6/Qt)
 * Fully operable without command-line interaction
-* Windows-compatible `.exe` (via GitHub Actions)
+* Cross-platform executables: Windows `.exe`, macOS `.app`, Linux AppImage
 * No external Python installation needed for users
 * Data is stored per school year as JSON (`data/YYYY_YYYY.json`)
 * Supports:
@@ -129,38 +129,40 @@ The solution output includes:
 
 | Feature                                         | Status    |
 |------------------------------------------------|-----------|
-| GUI-based app using `tkinter`                  | ⚙️ planned         |
-| Create and manage teachers, children, tandems  | ⚙️ planned         |
-| Weekly availability per teacher and child      | ⚙️ planned         |
-| Time slot system (45 min slots, 15 min raster) | ⚙️ planned         |
-| Tandem planning (2 children per slot)          | ⚙️ planned         |
-| Soft teacher break rule (15 min preferred)     | ⚙️ planned         |
-| Preference for early times (per child)         | ⚙️ planned         |
-| Exactly one time slot per child per week       | ⚙️ planned         |
-| Prioritized preferred teacher assignments      | ⚙️ planned         |
-| Weight configuration for optimization goals    | ⚙️ planned         |
-| Planning result per teacher                    | ⚙️ planned         |
-| Export weekly plans as PDF                     | ⚙️ planned         |
-| Conflict reporting (e.g., preferences unmet)   | ⚙️ planned         |
-| JSON-based school year storage                 | ⚙️ planned         |
-| Load/edit existing plans                       | ⚙️ planned         |
-| Minimize plan changes on update (soft rule)    | ⚙️ planned         |
-| Progress indication and status in GUI          | ⚙️ planned         |
-| Windows `.exe` build via GitHub Actions        | ⚙️ planned |
+| GUI-based app using PySide6/Qt                 | ✅ implemented     |
+| Create and manage teachers                      | ✅ implemented     |
+| Create and manage children                      | ⚙️ in progress     |
+| Create and manage tandems                       | ⚙️ in progress     |
+| Weekly availability per teacher and child      | ✅ implemented     |
+| Time slot system (45 min slots, 15 min raster) | ✅ implemented     |
+| Tandem planning (2 children per slot)          | ✅ implemented     |
+| Soft teacher break rule (15 min preferred)     | ✅ implemented     |
+| Preference for early times (per child)         | ✅ implemented     |
+| Exactly one time slot per child per week       | ✅ implemented     |
+| Prioritized preferred teacher assignments      | ✅ implemented     |
+| Weight configuration for optimization goals    | ✅ implemented     |
+| OR-Tools constraint optimization               | ✅ implemented     |
+| Planning result per teacher                    | ✅ implemented     |
+| Export weekly plans as PDF                     | ✅ implemented     |
+| Conflict reporting (e.g., preferences unmet)   | ✅ implemented     |
+| JSON-based school year storage                 | ✅ implemented     |
+| Load/edit existing plans                       | ✅ implemented     |
+| Minimize plan changes on update (soft rule)    | ✅ implemented     |
+| Progress indication and status in GUI          | ✅ implemented     |
+| Cross-platform builds via GitHub Actions       | ✅ implemented     |
 
 ---
 
 ## ⚙️ Configuration Weights
 
-````
-preferred_teacher = 5
-priority_early_slot = 3
-tandem_fulfilled = 4
-teacher_pause_respected = 1
-preserve_existing_plan = 10
-````
+Optimization weights are fully configurable in the GUI settings:
 
-All weights are adjustable in the GUI.
+- **Teacher Preference Weight**: Prioritize assigning children to preferred teachers
+- **Early Time Weight**: Schedule children earlier in the day when preferred
+- **Tandem Fulfillment Weight**: Maximize successful tandem scheduling
+- **Stability Weight**: Minimize changes from previous schedules
+
+All weights range from 0.0 to 1.0 and are adjustable through the application interface.
 
 ---
 
@@ -184,17 +186,24 @@ Structure includes:
 
 ## 🚀 Getting Started
 
-1. Install Python (from [python.org](https://www.python.org))
-2. Install `uv`:
+### For Users
+Download the latest release for your platform:
+- **Windows**: Download `SlotPlanner.exe` 
+- **macOS**: Download `SlotPlanner.app` or `SlotPlanner.dmg`
+- **Linux**: Download `SlotPlanner.AppImage`
 
+### For Developers
+1. Install Python 3.13+ and `uv` package manager:
    ```bash
+   # Install uv (cross-platform)
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
-3. Setup and run:
 
+2. Clone and setup:
    ```bash
-   uv venv
-   uv sync
+   git clone https://github.com/wkeram/SlotPlanner.git
+   cd SlotPlanner
+   uv sync --all-extras --dev
    uv run main.py
    ```
 
@@ -202,19 +211,27 @@ Structure includes:
 
 ## 🔧 Development & Testing
 
-### Running Tests
+### Development Commands
 ```bash
-# Install dependencies
+# Install development dependencies
 uv sync --all-extras --dev
+
+# Run the application
+uv run main.py
 
 # Run all tests
 uv run python tests/test_runner.py all
 
-# Run only optimizer tests (no UI)
-uv run python tests/test_runner.py optimizer
+# Run only optimizer tests (fastest)
+uv run python tests/test_runner.py optimizer  
 
-# Run with coverage
+# Run with coverage reporting
 uv run python tests/test_runner.py coverage
+
+# Code quality checks
+uv run black app/ tests/        # Format code
+uv run ruff check app/ tests/   # Lint code  
+uv run mypy app/                # Type checking
 ```
 
 ### Test Coverage
