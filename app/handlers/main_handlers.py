@@ -18,6 +18,30 @@ from .base_handler import BaseHandler
 logger = get_logger(__name__)
 
 
+def main_refresh_all_tables(window: QWidget, storage: Storage) -> None:
+    """Refresh all tables with current data to update translations.
+
+    Args:
+        window: Main application window instance
+        storage: Storage instance for data persistence
+    """
+    def _refresh_tables():
+        year = window.ui.findChild(QComboBox, "comboYearSelect").currentText()
+        data = storage.load(year)
+        
+        if data is None:
+            data = storage.get_default_data_structure()
+        
+        # Refresh all tables with current data
+        refresh_teacher_table(window.ui, data)
+        refresh_children_table(window.ui, data)
+        refresh_tandems_table(window.ui, data)
+        
+        logger.debug("Refreshed all tables for language change")
+
+    BaseHandler.safe_execute(_refresh_tables, parent=window)
+
+
 def main_on_load_clicked(window: QWidget, storage: Storage) -> None:
     """Handle click event for the load button.
 

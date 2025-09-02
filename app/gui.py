@@ -32,12 +32,12 @@ class SlotPlannerApp(QMainWindow):
         try:
             logger.info("Initializing SlotPlanner application")
 
-            # Initialize storage and load path settings
+            # Initialize storage and load application settings
             self.storage = Storage()
-            from app.handlers.settings_handlers import load_path_settings
+            from app.handlers.settings_handlers import load_app_settings
 
-            load_path_settings(self.storage)
-            logger.info("Storage initialized with custom paths")
+            load_app_settings(self.storage)
+            logger.info("Storage initialized with custom paths and settings")
 
             # Track previous year for unsaved changes detection
             self.previous_year = None

@@ -273,8 +273,8 @@ def settings_reset_paths(window: QWidget, storage: Storage) -> None:
     BaseHandler.safe_execute(_reset_paths, parent=window)
 
 
-def _save_path_settings(window: QWidget, storage: Storage) -> None:
-    """Save path settings to a configuration file.
+def _save_app_settings(window: QWidget, storage: Storage) -> None:
+    """Save application settings to a configuration file.
 
     Args:
         window: Main application window instance
@@ -283,20 +283,38 @@ def _save_path_settings(window: QWidget, storage: Storage) -> None:
     import json
 
     try:
+        from app.utils import get_current_language
+        
         config_file = "app_config.json"
-        config = {"data_path": storage.data_dir, "export_path": getattr(storage, "export_dir", "exports")}
+        config = {
+            "data_path": storage.data_dir, 
+            "export_path": getattr(storage, "export_dir", "exports"),
+            "language": get_current_language()
+        }
 
         with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
 
-        logger.debug(f"Saved path settings to {config_file}")
+        logger.debug(f"Saved application settings to {config_file}")
 
     except Exception as e:
-        logger.error(f"Failed to save path settings: {e}")
+        logger.error(f"Failed to save application settings: {e}")
 
 
-def load_path_settings(storage: Storage) -> None:
-    """Load path settings from configuration file.
+def _save_path_settings(window: QWidget, storage: Storage) -> None:
+    """Save path settings to a configuration file.
+    
+    DEPRECATED: Use _save_app_settings instead.
+
+    Args:
+        window: Main application window instance
+        storage: Storage instance for data persistence
+    """
+    _save_app_settings(window, storage)
+
+
+def load_app_settings(storage: Storage) -> None:
+    """Load application settings from configuration file.
 
     Args:
         storage: Storage instance to update with loaded paths
@@ -313,19 +331,34 @@ def load_path_settings(storage: Storage) -> None:
                 storage.data_dir = os.path.abspath(config["data_path"])
             if "export_path" in config:
                 storage.export_dir = os.path.abspath(config["export_path"])
+            if "language" in config:
+                from app.utils import set_language
+                set_language(config["language"])
+                logger.info(f"Loaded saved language preference: {config['language']}")
 
-            logger.debug(f"Loaded path settings from {config_file}")
+            logger.debug(f"Loaded application settings from {config_file}")
         else:
             # No config file exists, ensure we use absolute defaults
             storage.data_dir = os.path.abspath(storage.data_dir)
             storage.export_dir = os.path.abspath(storage.export_dir)
-            logger.debug("No config file found, using absolute default paths")
+            logger.debug("No config file found, using absolute default paths and language")
 
     except Exception as e:
-        logger.error(f"Failed to load path settings: {e}")
+        logger.error(f"Failed to load application settings: {e}")
         # Ensure absolute paths even on error
         storage.data_dir = os.path.abspath(storage.data_dir)
         storage.export_dir = os.path.abspath(storage.export_dir)
+
+
+def load_path_settings(storage: Storage) -> None:
+    """Load path settings from configuration file.
+    
+    DEPRECATED: Use load_app_settings instead.
+
+    Args:
+        storage: Storage instance to update with loaded paths
+    """
+    load_app_settings(storage)
 
 
 def settings_load_paths_into_ui(window: QWidget, storage: Storage) -> None:
@@ -533,9 +566,17 @@ def settings_language_changed(window: QWidget, storage: Storage) -> None:
         if current_lang != language_code:
             set_language(language_code)
 
+            # Save language preference to config
+            _save_app_settings(window, storage)
+
             # Update UI with new language immediately
             if hasattr(window, "update_ui_translations"):
                 window.update_ui_translations()
+
+            # Refresh tables and data displays with new language
+            from app import handlers
+            if hasattr(handlers, 'main_refresh_all_tables'):
+                handlers.main_refresh_all_tables(window, storage)
 
             # Show success message in new language
             from app.utils import get_translations
@@ -543,7 +584,7 @@ def settings_language_changed(window: QWidget, storage: Storage) -> None:
             BaseHandler.show_info(
                 window,
                 get_translations("language_changed"),
-                f"Language changed to {selected_text}.\n\nInterface has been updated to the new language.",
+                f"{get_translations('language_changed')}: {selected_text}\n\n{get_translations('success_data_loaded')}",
             )
             logger.info(f"Language changed from {current_lang} to {language_code}")
 
