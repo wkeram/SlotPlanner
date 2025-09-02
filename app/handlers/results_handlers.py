@@ -253,7 +253,7 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
     BaseHandler.safe_execute(_export_pdf, parent=window)
 
 
-def create_optimized_schedule(teachers, children, tandems, weights, worker=None):
+def create_optimized_schedule(teachers, children, tandems, weights, worker=None, random_seed=None):
     """Create an optimized schedule using OR-Tools constraint solver.
 
     Args:
@@ -262,6 +262,7 @@ def create_optimized_schedule(teachers, children, tandems, weights, worker=None)
         tandems: Dictionary of tandem data
         weights: Optimization weights
         worker: Optional worker object for progress reporting
+        random_seed: Optional random seed for deterministic testing
 
     Returns:
         Tuple of (schedule_dict, violations_list)
@@ -388,6 +389,10 @@ def create_optimized_schedule(teachers, children, tandems, weights, worker=None)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 120.0  # 2 minute timeout
     solver.parameters.num_search_workers = 4  # Use multiple threads
+
+    # Set random seed for deterministic testing
+    if random_seed is not None:
+        solver.parameters.random_seed = random_seed
 
     # Running optimization solver...
 

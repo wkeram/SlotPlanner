@@ -34,21 +34,21 @@ def minimal_test_data():
             "Teacher_A": {
                 "name": "Teacher A",
                 "availability": {
-                    "monday": ["08:00", "09:00", "10:00"],
-                    "tuesday": ["08:00", "09:00"],
-                    "wednesday": [],
-                    "thursday": ["14:00", "15:00"],
-                    "friday": ["08:00"],
+                    "Mo": [("08:00", "11:00")],  # 3 hours: 08:00-11:00
+                    "Di": [("08:00", "10:00")],  # 2 hours: 08:00-10:00
+                    "Mi": [],
+                    "Do": [("14:00", "16:00")],  # 2 hours: 14:00-16:00
+                    "Fr": [("08:00", "09:00")],  # 1 hour: 08:00-09:00
                 },
             },
             "Teacher_B": {
                 "name": "Teacher B",
                 "availability": {
-                    "monday": ["10:00", "11:00"],
-                    "tuesday": ["08:00", "09:00", "10:00"],
-                    "wednesday": ["14:00"],
-                    "thursday": [],
-                    "friday": ["08:00", "09:00"],
+                    "Mo": [("10:00", "12:00")],  # 2 hours: 10:00-12:00
+                    "Di": [("08:00", "11:00")],  # 3 hours: 08:00-11:00
+                    "Mi": [("14:00", "15:00")],  # 1 hour: 14:00-15:00
+                    "Do": [],
+                    "Fr": [("08:00", "10:00")],  # 2 hours: 08:00-10:00
                 },
             },
         },
@@ -56,39 +56,39 @@ def minimal_test_data():
             "Child_1": {
                 "name": "Child 1",
                 "availability": {
-                    "monday": ["08:00", "09:00", "10:00", "11:00"],
-                    "tuesday": ["08:00", "09:00", "10:00"],
-                    "wednesday": ["14:00"],
-                    "thursday": ["14:00", "15:00"],
-                    "friday": ["08:00", "09:00"],
+                    "Mo": [("08:00", "12:00")],  # Available all morning
+                    "Di": [("08:00", "11:00")],  # Available morning
+                    "Mi": [("14:00", "15:00")],  # Available afternoon
+                    "Do": [("14:00", "16:00")],  # Available afternoon
+                    "Fr": [("08:00", "10:00")],  # Available morning
                 },
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             },
             "Child_2": {
                 "name": "Child 2",
                 "availability": {
-                    "monday": ["10:00", "11:00"],
-                    "tuesday": ["08:00", "09:00"],
-                    "wednesday": [],
-                    "thursday": ["14:00"],
-                    "friday": ["08:00", "09:00"],
+                    "Mo": [("10:00", "12:00")],  # Available late morning
+                    "Di": [("08:00", "10:00")],  # Available early morning
+                    "Mi": [],
+                    "Do": [("14:00", "15:00")],  # Available afternoon
+                    "Fr": [("08:00", "10:00")],  # Available morning
                 },
-                "preferred_teachers": ["Teacher B"],
+                "preferred_teachers": ["Teacher_B"],
             },
             "Child_3": {
                 "name": "Child 3",
                 "availability": {
-                    "monday": ["08:00", "09:00"],
-                    "tuesday": ["10:00"],
-                    "wednesday": ["14:00"],
-                    "thursday": ["15:00"],
-                    "friday": ["08:00"],
+                    "Mo": [("08:00", "10:00")],  # Available morning
+                    "Di": [("10:00", "11:00")],  # Available late morning
+                    "Mi": [("14:00", "15:00")],  # Available afternoon
+                    "Do": [("15:00", "16:00")],  # Available late afternoon
+                    "Fr": [("08:00", "09:00")],  # Available early morning
                 },
                 "preferred_teachers": [],
             },
         },
         "tandems": {},
-        "weights": {"teacher_preference": 0.5, "early_time": 0.3, "tandem_fulfillment": 0.7, "stability": 0.4},
+        "weights": {"preferred_teacher": 5, "priority_early_slot": 3, "tandem_fulfilled": 4},
     }
 
 
@@ -100,21 +100,21 @@ def tandem_test_data():
             "Teacher_A": {
                 "name": "Teacher A",
                 "availability": {
-                    "monday": ["08:00", "09:00", "10:00", "11:00"],
-                    "tuesday": ["08:00", "09:00"],
-                    "wednesday": [],
-                    "thursday": ["14:00", "15:00"],
-                    "friday": [],
+                    "Mo": [("08:00", "12:00")],  # All morning
+                    "Di": [("08:00", "10:00")],  # Early morning
+                    "Mi": [],
+                    "Do": [("14:00", "16:00")],  # Afternoon
+                    "Fr": [],
                 },
             },
             "Teacher_B": {
                 "name": "Teacher B",
                 "availability": {
-                    "monday": ["10:00", "11:00", "14:00"],
-                    "tuesday": ["08:00", "09:00", "10:00"],
-                    "wednesday": ["14:00", "15:00"],
-                    "thursday": [],
-                    "friday": ["08:00", "09:00"],
+                    "Mo": [("10:00", "12:00"), ("14:00", "15:00")],  # Late morning + afternoon
+                    "Di": [("08:00", "11:00")],  # Morning
+                    "Mi": [("14:00", "16:00")],  # Afternoon
+                    "Do": [],
+                    "Fr": [("08:00", "10:00")],  # Morning
                 },
             },
         },
@@ -122,39 +122,39 @@ def tandem_test_data():
             "Child_A": {
                 "name": "Child A",
                 "availability": {
-                    "monday": ["08:00", "09:00", "10:00"],
-                    "tuesday": ["08:00", "09:00"],
-                    "wednesday": [],
-                    "thursday": ["14:00", "15:00"],
-                    "friday": [],
+                    "Mo": [("08:00", "11:00")],  # Morning
+                    "Di": [("08:00", "10:00")],  # Early morning
+                    "Mi": [],
+                    "Do": [("14:00", "16:00")],  # Afternoon
+                    "Fr": [],
                 },
                 "preferred_teachers": ["Teacher A"],
             },
             "Child_B": {
                 "name": "Child B",
                 "availability": {
-                    "monday": ["09:00", "10:00", "11:00"],
-                    "tuesday": ["08:00"],
-                    "wednesday": [],
-                    "thursday": ["14:00", "15:00"],
-                    "friday": [],
+                    "Mo": [("09:00", "12:00")],  # Late morning
+                    "Di": [("08:00", "09:00")],  # Early morning
+                    "Mi": [],
+                    "Do": [("14:00", "16:00")],  # Afternoon
+                    "Fr": [],
                 },
                 "preferred_teachers": ["Teacher A"],
             },
             "Child_C": {
                 "name": "Child C",
                 "availability": {
-                    "monday": ["14:00"],
-                    "tuesday": ["10:00"],
-                    "wednesday": ["14:00", "15:00"],
-                    "thursday": [],
-                    "friday": ["08:00", "09:00"],
+                    "Mo": [("14:00", "15:00")],  # Afternoon
+                    "Di": [("10:00", "11:00")],  # Late morning
+                    "Mi": [("14:00", "16:00")],  # Afternoon
+                    "Do": [],
+                    "Fr": [("08:00", "10:00")],  # Morning
                 },
                 "preferred_teachers": ["Teacher B"],
             },
         },
         "tandems": {"Tandem_AB": {"name": "Tandem AB", "child1": "Child A", "child2": "Child B", "priority": 1}},
-        "weights": {"teacher_preference": 0.6, "early_time": 0.4, "tandem_fulfillment": 0.8, "stability": 0.3},
+        "weights": {"preferred_teacher": 6, "priority_early_slot": 4, "tandem_fulfilled": 8},
     }
 
 
@@ -170,11 +170,11 @@ def complex_test_data():
         teachers[teacher_name] = {
             "name": f"Teacher {i:02d}",
             "availability": {
-                "monday": ["08:00", "09:00"] if i % 2 == 0 else ["10:00", "11:00"],
-                "tuesday": ["08:00", "09:00", "10:00"] if i < 5 else ["14:00", "15:00"],
-                "wednesday": ["14:00"] if i % 3 == 0 else [],
-                "thursday": ["08:00", "09:00"] if i % 4 == 0 else ["15:00"],
-                "friday": ["08:00", "09:00", "10:00"] if i < 3 else [],
+                "Mo": [("08:00", "10:00")] if i % 2 == 0 else [("10:00", "12:00")],
+                "Di": [("08:00", "11:00")] if i < 5 else [("14:00", "16:00")],
+                "Mi": [("14:00", "15:00")] if i % 3 == 0 else [],
+                "Do": [("08:00", "10:00")] if i % 4 == 0 else [("15:00", "16:00")],
+                "Fr": [("08:00", "11:00")] if i < 3 else [],
             },
         }
 
@@ -186,11 +186,11 @@ def complex_test_data():
         children[child_name] = {
             "name": f"Child {i:02d}",
             "availability": {
-                "monday": ["08:00", "09:00", "10:00", "11:00"] if i % 5 != 0 else ["14:00"],
-                "tuesday": ["08:00", "09:00"] if i % 3 == 0 else ["10:00", "14:00", "15:00"],
-                "wednesday": ["14:00"] if i % 7 == 0 else [],
-                "thursday": ["08:00", "09:00", "15:00"] if i % 4 != 0 else [],
-                "friday": ["08:00", "09:00"] if i < 10 else ["10:00"],
+                "Mo": [("08:00", "12:00")] if i % 5 != 0 else [("14:00", "15:00")],
+                "Di": [("08:00", "10:00")] if i % 3 == 0 else [("10:00", "16:00")],
+                "Mi": [("14:00", "15:00")] if i % 7 == 0 else [],
+                "Do": [("08:00", "10:00"), ("15:00", "16:00")] if i % 4 != 0 else [],
+                "Fr": [("08:00", "10:00")] if i < 10 else [("10:00", "11:00")],
             },
             "preferred_teachers": preferred_teachers,
         }
@@ -199,7 +199,7 @@ def complex_test_data():
         "teachers": teachers,
         "children": children,
         "tandems": {},
-        "weights": {"teacher_preference": 0.7, "early_time": 0.5, "tandem_fulfillment": 0.6, "stability": 0.4},
+        "weights": {"preferred_teacher": 7, "priority_early_slot": 5, "tandem_fulfilled": 6},
     }
 
 
@@ -211,44 +211,44 @@ def edge_case_data():
             "Single_Slot_Teacher": {
                 "name": "Single Slot Teacher",
                 "availability": {
-                    "monday": [],
-                    "tuesday": [],
-                    "wednesday": ["14:00"],  # Only one slot available
-                    "thursday": [],
-                    "friday": [],
+                    "Mo": [],
+                    "Di": [],
+                    "Mi": [("14:00", "15:00")],  # Only one 1-hour slot available
+                    "Do": [],
+                    "Fr": [],
                 },
             },
             "No_Availability_Teacher": {
                 "name": "No Availability Teacher",
-                "availability": {"monday": [], "tuesday": [], "wednesday": [], "thursday": [], "friday": []},
+                "availability": {"Mo": [], "Di": [], "Mi": [], "Do": [], "Fr": []},
             },
         },
         "children": {
             "Conflicted_Child": {
                 "name": "Conflicted Child",
                 "availability": {
-                    "monday": ["08:00"],  # No teacher available at this time
-                    "tuesday": [],
-                    "wednesday": [],
-                    "thursday": [],
-                    "friday": [],
+                    "Mo": [("08:00", "09:00")],  # No teacher available at this time
+                    "Di": [],
+                    "Mi": [],
+                    "Do": [],
+                    "Fr": [],
                 },
-                "preferred_teachers": ["Single Slot Teacher"],
+                "preferred_teachers": ["Single_Slot_Teacher"],
             },
             "Impossible_Child": {
                 "name": "Impossible Child",
                 "availability": {
-                    "monday": [],
-                    "tuesday": [],
-                    "wednesday": [],
-                    "thursday": [],
-                    "friday": [],  # No availability at all
+                    "Mo": [],
+                    "Di": [],
+                    "Mi": [],
+                    "Do": [],
+                    "Fr": [],  # No availability at all
                 },
                 "preferred_teachers": [],
             },
         },
         "tandems": {},
-        "weights": {"teacher_preference": 1.0, "early_time": 0.0, "tandem_fulfillment": 0.0, "stability": 0.0},
+        "weights": {"preferred_teacher": 10, "priority_early_slot": 0, "tandem_fulfilled": 0},
     }
 
 
@@ -260,11 +260,11 @@ def zero_weights_data():
             "Teacher_A": {
                 "name": "Teacher A",
                 "availability": {
-                    "monday": ["08:00", "09:00"],
-                    "tuesday": [],
-                    "wednesday": [],
-                    "thursday": [],
-                    "friday": [],
+                    "Mo": [("08:00", "10:00")],  # 2 hours available
+                    "Di": [],
+                    "Mi": [],
+                    "Do": [],
+                    "Fr": [],
                 },
             }
         },
@@ -272,17 +272,17 @@ def zero_weights_data():
             "Child_1": {
                 "name": "Child 1",
                 "availability": {
-                    "monday": ["08:00", "09:00"],
-                    "tuesday": [],
-                    "wednesday": [],
-                    "thursday": [],
-                    "friday": [],
+                    "Mo": [("08:00", "10:00")],  # 2 hours available
+                    "Di": [],
+                    "Mi": [],
+                    "Do": [],
+                    "Fr": [],
                 },
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             }
         },
         "tandems": {},
-        "weights": {"teacher_preference": 0.0, "early_time": 0.0, "tandem_fulfillment": 0.0, "stability": 0.0},
+        "weights": {"preferred_teacher": 0, "priority_early_slot": 0, "tandem_fulfilled": 0},
     }
 
 
