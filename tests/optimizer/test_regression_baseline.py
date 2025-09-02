@@ -5,7 +5,6 @@ Tests that ensure optimization results remain consistent across code changes.
 
 import pytest
 
-from app.handlers.results_handlers import create_optimized_schedule
 from tests.test_helpers import (
     assert_schedule_quality,
     calculate_total_optimization_score,

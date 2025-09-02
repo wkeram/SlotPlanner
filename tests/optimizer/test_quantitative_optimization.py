@@ -5,7 +5,6 @@ Tests that verify optimization scores and weight effects with numerical assertio
 
 import pytest
 
-from app.handlers.results_handlers import create_optimized_schedule
 from tests.test_helpers import (
     assert_schedule_quality,
     calculate_early_slot_score,

@@ -4,7 +4,6 @@ Provides utilities for schedule validation, score calculation, and test assertio
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Set, Tuple
 
 from app.handlers.results_handlers import create_optimized_schedule
 
@@ -46,7 +45,7 @@ def validate_schedule_structure(schedule: dict, violations: list) -> bool:
     return True
 
 
-def get_scheduled_children(schedule: dict) -> Set[str]:
+def get_scheduled_children(schedule: dict) -> set[str]:
     """Extract all children that are scheduled.
 
     Args:
@@ -62,7 +61,7 @@ def get_scheduled_children(schedule: dict) -> Set[str]:
     return scheduled
 
 
-def get_teacher_assignments(schedule: dict, teacher_name: str) -> List[Tuple[str, str]]:
+def get_teacher_assignments(schedule: dict, teacher_name: str) -> list[tuple[str, str]]:
     """Get all time slots assigned to a specific teacher.
 
     Args:
@@ -80,7 +79,7 @@ def get_teacher_assignments(schedule: dict, teacher_name: str) -> List[Tuple[str
     return assignments
 
 
-def check_no_double_bookings(schedule: dict) -> List[str]:
+def check_no_double_bookings(schedule: dict) -> list[str]:
     """Check for teacher double bookings (overlapping 45-minute slots).
 
     Args:
@@ -119,7 +118,7 @@ def check_no_double_bookings(schedule: dict) -> List[str]:
     return violations
 
 
-def check_child_multiple_assignments(schedule: dict) -> List[str]:
+def check_child_multiple_assignments(schedule: dict) -> list[str]:
     """Check that each child is assigned exactly once.
 
     Args:
@@ -341,7 +340,7 @@ def expect_deterministic_schedule(
     children: dict,
     tandems: dict,
     weights: dict,
-    expected_assignments: List[Tuple[str, str, str, str]],
+    expected_assignments: list[tuple[str, str, str, str]],
     seed: int = 42,
 ):
     """Test that a scenario produces expected deterministic assignments.

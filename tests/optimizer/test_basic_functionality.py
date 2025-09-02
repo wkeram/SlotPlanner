@@ -5,12 +5,7 @@ Tests fundamental assignment capabilities without complex constraints.
 
 import pytest
 
-from app.handlers.results_handlers import create_optimized_schedule
-from tests.test_helpers import (
-    assert_schedule_quality,
-    get_scheduled_children,
-    run_deterministic_optimization,
-)
+from tests.test_helpers import assert_schedule_quality, get_scheduled_children, run_deterministic_optimization
 
 pytestmark = pytest.mark.optimizer
 
