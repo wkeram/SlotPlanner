@@ -121,7 +121,7 @@ jobs:
       - name: Run tests
         run: uv run python tests/test_runner.py fast
         env:
-          QT_QPA_PLATFORM: ${{ matrix.os == 'ubuntu-latest' && 'offscreen' || '' }}
+          QT_QPA_PLATFORM: ${{ matrix.os == 'ubuntu-latest' && 'offscreen' || 'minimal' }}
 
       - name: Run linting
         run: |
