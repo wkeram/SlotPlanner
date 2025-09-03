@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ALL instructions within this document MUST BE FOLLOWED, these are not optional unless explicitly stated.
 - DO NOT edit more code than you have to.
 - DO NOT WASTE TOKENS, be succinct and concise.
+- Write tests that actually validate the output. Add som etests to cover edge cases
 
 ## Commands
 
@@ -77,7 +78,7 @@ uv run python scripts/version-manager.py tag
 
 SlotPlanner is a **production-ready** PySide6 desktop application with comprehensive CI/CD pipeline. Core functionality is implemented including:
 
-- ✅ Teacher management with availability scheduling  
+- ✅ Teacher management with availability scheduling
 - ✅ OR-Tools constraint optimization engine
 - ✅ PDF export of weekly schedules
 - ✅ JSON data persistence per school year
@@ -96,7 +97,7 @@ Functional requirements are documented in `README.md` and must be respected when
 ## UI/UX Best Practices
 
 - Visual Hierarchy: Limit typography to 4–5 font sizes and weights for consistent hierarchy; use `text-xs` for captions and annotations; avoid `text-xl` unless for hero or major headings.
-- Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors. 
+- Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors.
 - Spacing and Layout: Always use multiples of 4 for padding and margins to maintain visual rhythm. Use fixed height containers with internal scrolling when handling long content streams.
 - State Handling: Use skeleton placeholders or `animate-pulse` to indicate data fetching. Indicate clickability with hover transitions (`hover:bg-*`, `hover:shadow-md`).
 - User-facing texts should be stored in English and German language in `app/config/translations.json` and loaded from there to ensure multi-language support.
@@ -107,7 +108,7 @@ SlotPlanner is a PySide6-based desktop application for optimizing weekly schedul
 
 ### Core Structure
 - **GUI**: Qt Designer UI files (`.ui`) define the interface layout
-  - `main_window.ui` - Main interface with 5 tabs (Teachers, Children, Tandems, Settings, Results)  
+  - `main_window.ui` - Main interface with 5 tabs (Teachers, Children, Tandems, Settings, Results)
   - `add_teacher.ui` - Dialog for adding new teachers
 - **Data Layer**: JSON-based persistence in `app/storage.py`
   - One file per school year: `data/YYYY_YYYY.json`
@@ -148,7 +149,7 @@ version.json          # Single source of truth for version
 
 ### Technologies
 - **PySide6**: All UI components and Qt framework integration
-- **OR-Tools**: Constraint programming optimization engine  
+- **OR-Tools**: Constraint programming optimization engine
 - **ReportLab**: PDF generation for schedule exports
 - **PyInstaller**: Creates standalone Windows executable via GitHub Actions
 
@@ -176,7 +177,7 @@ SlotPlanner uses semantic versioning (SemVer) with centralized version managemen
 2. **Version Check**: Use `scripts/version-manager.py` to validate new version doesn't exist
 3. **Set Version**: Run `uv run python scripts/version-manager.py set X.Y.Z` to update version
 4. **GitHub Release**: Trigger "Version Release" workflow with version number
-5. **Automated Steps**: 
+5. **Automated Steps**:
    - Validates version format and checks for existing tags
    - Runs tests and builds for all platforms (Windows, macOS, Linux)
    - Creates GitHub release with artifacts and auto-generated notes

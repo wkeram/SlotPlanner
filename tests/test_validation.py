@@ -3,7 +3,6 @@ Focused validation tests for existing Validator methods.
 Tests only the methods that actually exist in the Validator class.
 """
 
-
 import pytest
 
 from app.validation import ValidationResult, Validator
