@@ -9,6 +9,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - DO NOT WASTE TOKENS, be succinct and concise.
 - Write tests that actually validate the output. Add som etests to cover edge cases
 
+## Git Worktree Working Directory Rules
+
+- **CRITICAL**: Always verify current working directory with `pwd` before making any file changes
+- **CRITICAL**: If working in a git worktree (path contains `.claude/worktrees/`), ALL changes must be made within that worktree directory only
+- **CRITICAL**: Before editing any file, confirm the file path matches the current worktree context
+- **CRITICAL**: Never make changes to files outside the current worktree when multiple instances are running
+- Use `git branch` to verify you're on the correct branch before making changes
+- If uncertain about working directory context, ask user to confirm before proceeding
+
 ## Commands
 
 ### Development Setup
