@@ -25,7 +25,7 @@ def run_all_tests():
 
 def run_fast_tests():
     """Run fast tests only (excluding slow performance tests)."""
-    return pytest.main(["tests/", "-v", "-m", "not slow and not performance", "--tb=short", "--maxfail=5"])
+    return pytest.main(["tests/", "-v", "-m", "not slow and not performance", "--tb=short"])
 
 
 def run_integration_tests():
