@@ -1,5 +1,11 @@
 name: Version Release
 
+permissions:
+  contents: write
+  actions: read
+  checks: write
+  pull-requests: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -43,7 +49,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
 
       - name: Validate version format
         id: validate
@@ -105,7 +111,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --all-extras --dev
 
       - name: Update version
         run: |
@@ -128,13 +134,13 @@ jobs:
       - name: Build application (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          uv add pyinstaller
+          uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
 
       - name: Build application (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          uv add pyinstaller
+          uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
           # Create DMG
           mkdir -p dmg
@@ -144,7 +150,7 @@ jobs:
       - name: Build application (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          uv add pyinstaller
+          uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
 
       - name: Upload Windows build
@@ -195,7 +201,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
 
       - name: Update version in repository
         run: |
@@ -330,7 +336,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
 
       - name: Update main branch with new version
         run: |
