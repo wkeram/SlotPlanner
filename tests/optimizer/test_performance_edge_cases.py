@@ -49,7 +49,7 @@ class TestPerformanceEdgeCases:
 
         children = {}
         for i in range(15):  # 15 children competing for 1 teacher
-            children[f"Child_{i}"] = {"name": f"Child {i}", "availability": {}, "preferred_teachers": ["Teacher A"]}
+            children[f"Child_{i}"] = {"name": f"Child {i}", "availability": {}, "preferred_teachers": ["Teacher_A"]}
 
         tandems = {}
         weights = {"preferred_teacher": 5, "priority_early_slot": 3, "tandem_fulfilled": 4}
@@ -132,12 +132,12 @@ class TestPerformanceEdgeCases:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {"Mo": [("09:00", "09:15")]},  # Same tiny window
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             },
             "Child_2": {
                 "name": "Child 2",
                 "availability": {"Mo": [("09:00", "09:15")]},
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             },
         }
 

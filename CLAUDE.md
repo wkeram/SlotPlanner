@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ALL instructions within this document MUST BE FOLLOWED, these are not optional unless explicitly stated.
 - DO NOT edit more code than you have to.
 - DO NOT WASTE TOKENS, be succinct and concise.
-- Write tests that actually validate the output. Add som etests to cover edge cases
+- Write tests that actually validate the output. Add some tests to cover edge cases
 
 ## Git Worktree Working Directory Rules
 

@@ -240,7 +240,7 @@ class TestMainWindowUI:
         # Mock optimization result
         mock_result = {
             "assignments": [
-                {"child": "Child 1", "teacher": "Teacher A", "day": "monday", "time": "08:00"},
+                {"child": "Child 1", "teacher": "Teacher_A", "day": "monday", "time": "08:00"},
                 {"child": "Child 2", "teacher": "Teacher B", "day": "tuesday", "time": "09:00"},
             ],
             "violations": [],

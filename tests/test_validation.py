@@ -246,7 +246,7 @@ class TestTeacherAvailabilityValidation:
             {"Mo": [["08:00"]]},  # Missing end time
             {"Mo": [["08:00", "12:00", "13:00"]]},  # Too many times
             # Overlapping slots
-            {"Mo": [["08:00", "10:00"], ["09:00", "11:00"]]},  # Overlap
+            {"Mo": [("08:00", "10:00"), ("09:00", "11:00")]},  # Overlap
         ]
 
         for availability in invalid_availability:
@@ -257,7 +257,7 @@ class TestTeacherAvailabilityValidation:
     def test_availability_warnings(self):
         """Test availability warnings for edge cases."""
         # Very low availability
-        low_availability = {"Mo": [["08:00", "08:45"]]}  # Only 45 minutes
+        low_availability = {"Mo": [("08:00", "08:45")]}  # Only 45 minutes
         result = Validator.validate_teacher_availability(low_availability)
         assert result.is_valid, "Minimal availability should be valid"
         if result.has_warnings:
@@ -273,7 +273,7 @@ class TestTeacherAvailabilityValidation:
 
     def test_overlapping_detection(self):
         """Test detection of overlapping slots within a day."""
-        overlapping_availability = {"Mo": [["08:00", "10:00"], ["09:00", "11:00"]]}  # 1 hour overlap
+        overlapping_availability = {"Mo": [("08:00", "10:00"), ("09:00", "11:00")]}  # 1 hour overlap
 
         result = Validator.validate_teacher_availability(overlapping_availability)
         assert not result.is_valid, "Overlapping slots should be invalid"

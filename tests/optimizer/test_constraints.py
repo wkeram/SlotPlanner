@@ -26,7 +26,7 @@ class TestConstraintViolations:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {},
-                "preferred_teachers": ["Teacher A"],  # Prefers unavailable teacher
+                "preferred_teachers": ["Teacher_A"],  # Prefers unavailable teacher
             }
         }
 
@@ -53,7 +53,7 @@ class TestConstraintViolations:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {"Di": [("09:00", "10:00")]},  # Different day from teacher
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             }
         }
 
@@ -76,9 +76,9 @@ class TestConstraintViolations:
         }
 
         children = {
-            "Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher A"]},
-            "Child_2": {"name": "Child 2", "availability": {}, "preferred_teachers": ["Teacher A"]},
-            "Child_3": {"name": "Child 3", "availability": {}, "preferred_teachers": ["Teacher A"]},
+            "Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher_A"]},
+            "Child_2": {"name": "Child 2", "availability": {}, "preferred_teachers": ["Teacher_A"]},
+            "Child_3": {"name": "Child 3", "availability": {}, "preferred_teachers": ["Teacher_A"]},
         }
 
         tandems = {}
@@ -107,7 +107,7 @@ class TestConstraintViolations:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {},
-                "preferred_teachers": ["Teacher A"],  # Prefer unavailable teacher
+                "preferred_teachers": ["Teacher_A"],  # Prefer unavailable teacher
             }
         }
 

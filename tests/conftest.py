@@ -128,7 +128,7 @@ def tandem_test_data():
                     "Do": [("14:00", "16:00")],  # Afternoon
                     "Fr": [],
                 },
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             },
             "Child_B": {
                 "name": "Child B",
@@ -139,7 +139,7 @@ def tandem_test_data():
                     "Do": [("14:00", "16:00")],  # Afternoon
                     "Fr": [],
                 },
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             },
             "Child_C": {
                 "name": "Child C",

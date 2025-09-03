@@ -27,7 +27,7 @@ class TestWeightOptimization:
         }
 
         children = {
-            "Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher A"]}  # Strong preference
+            "Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher_A"]}  # Strong preference
         }
 
         tandems = {}
@@ -124,7 +124,7 @@ class TestWeightOptimization:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {},
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
                 "early_preference": True,
             },
             "Child_2": {"name": "Child 2", "availability": {}, "preferred_teachers": ["Teacher B"]},
@@ -155,7 +155,7 @@ class TestWeightOptimization:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {},
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
                 "early_preference": True,
             }
         }
@@ -179,7 +179,7 @@ class TestWeightOptimization:
             }
         }
 
-        children = {"Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher A"]}}
+        children = {"Child_1": {"name": "Child 1", "availability": {}, "preferred_teachers": ["Teacher_A"]}}
 
         tandems = {}
 
