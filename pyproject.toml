@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "wkeram" }
     ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "pyside6>=6.7.0",
     "ortools>=9.8.0",
@@ -131,11 +131,12 @@ version = {attr = "app.version.__version__"}
 
 [tool.mypy]
 python_version = "3.11"
-warn_return_any = false
+warn_return_any = false  # Keep flexible for existing code
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = false  # Keep flexible for existing code
 ignore_missing_imports = true
 no_implicit_optional = false
 show_error_codes = true
-check_untyped_defs = false
+check_untyped_defs = true  # Enable basic type checking
 warn_unreachable = true
+strict_optional = true  # Enable stricter optional handling
