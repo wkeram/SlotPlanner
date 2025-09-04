@@ -134,12 +134,20 @@ class TestFilenameSanitization:
 
     def test_sanitize_path_separators(self):
         """Test that path separators are handled correctly."""
+        import os
+
         storage = Storage()
 
         # Path separators should be removed via os.path.basename
         assert storage._sanitize_filename("/tmp/test") == "test"
-        assert storage._sanitize_filename("..\\windows\\system32") == "system32"  # basename keeps just last part
         assert storage._sanitize_filename("folder/subfolder/file") == "file"
+
+        # Windows-style path separators - behavior depends on platform
+        result = storage._sanitize_filename("..\\windows\\system32")
+        if os.name == "nt":  # Windows
+            assert result == "system32"
+        else:  # Unix-like systems (Linux, macOS) - backslashes are just regular characters
+            assert result == "windowssystem32"  # .. pattern gets removed, backslashes remain and get stripped
 
     def test_sanitize_empty_result(self):
         """Test handling when sanitization results in empty string."""
