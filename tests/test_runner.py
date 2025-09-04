@@ -10,7 +10,7 @@ import pytest
 
 def run_optimizer_tests():
     """Run only optimizer tests."""
-    return pytest.main(["tests/optimizer/", "-v", "-m", "optimizer or not ui", "--tb=short"])
+    return pytest.main(["tests/optimizer/", "-v", "-m", "optimizer or not ui", "--tb=short", "--disable-warnings"])
 
 
 def run_ui_tests():

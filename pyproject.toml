@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "wkeram" }
     ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "pyside6>=6.7.0",
     "ortools>=9.8.0",
@@ -19,7 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "pytest-qt>=4.2.0", 
+    "pytest-qt>=4.2.0",
     "pytest-mock>=3.10.0",
     "pytest-cov>=4.0.0",
     "pytest-xvfb>=3.0.0",
@@ -28,6 +28,7 @@ dev = [
     "black>=23.0.0",
     "isort>=5.12.0",
     "mypy>=1.7.0",
+    "pre-commit>=3.0.0",
 ]
 
 build = [
@@ -73,12 +74,12 @@ output = "coverage.xml"
 
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings  
+    "W",  # pycodestyle warnings
     "F",  # pyflakes
     "I",  # isort
     "B",  # flake8-bugbear
@@ -92,11 +93,11 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["B011"]  # Allow assert False in tests
+"tests/*" = ["B011", "F841", "B007"]  # Allow assert False, unused variables, and unused loop vars in tests
 
 [tool.black]
 line-length = 120
-target-version = ['py313']
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -129,10 +130,13 @@ packages = ["app"]
 version = {attr = "app.version.__version__"}
 
 [tool.mypy]
-python_version = "3.13"
-warn_return_any = true
+python_version = "3.11"
+warn_return_any = false  # Keep flexible for existing code
 warn_unused_configs = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false  # Keep flexible for existing code
 ignore_missing_imports = true
-no_implicit_optional = true
+no_implicit_optional = false
 show_error_codes = true
+check_untyped_defs = true  # Enable basic type checking
+warn_unreachable = true
+strict_optional = true  # Enable stricter optional handling

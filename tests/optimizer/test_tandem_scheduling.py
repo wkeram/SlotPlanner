@@ -84,7 +84,7 @@ class TestTandemScheduling:
             "Child_1": {
                 "name": "Child 1",
                 "availability": {"Mo": [("09:00", "10:00")]},
-                "preferred_teachers": ["Teacher A"],
+                "preferred_teachers": ["Teacher_A"],
             },
             "Child_2": {
                 "name": "Child 2",
