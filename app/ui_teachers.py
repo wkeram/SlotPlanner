@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHeaderView, QTableWidget, QTableWidgetItem, QWidget
 
 from app.config.logging_config import get_logger
+from app.utils import get_translations
 
 logger = get_logger(__name__)
 
@@ -27,7 +28,7 @@ def refresh_teacher_table(window: QWidget, data: dict) -> None:
 
     table.setRowCount(len(teachers))
     table.setColumnCount(2)
-    table.setHorizontalHeaderLabels(["Name", "Availability"])
+    table.setHorizontalHeaderLabels([get_translations("name"), get_translations("availability")])
     table.horizontalHeader().setStretchLastSection(True)
     table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
@@ -62,7 +63,14 @@ def refresh_children_table(window: QWidget, data: dict) -> None:
 
     table.setRowCount(len(children))
     table.setColumnCount(4)
-    table.setHorizontalHeaderLabels(["Name", "Early Preference", "Preferred Teachers", "Availability"])
+    table.setHorizontalHeaderLabels(
+        [
+            get_translations("name"),
+            get_translations("early_preference"),
+            get_translations("preferred_teachers"),
+            get_translations("availability"),
+        ]
+    )
     table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     for row, (name, info) in enumerate(children.items()):
@@ -70,7 +78,7 @@ def refresh_children_table(window: QWidget, data: dict) -> None:
         table.setItem(row, 0, QTableWidgetItem(name))
 
         # Early preference
-        early_pref = "Yes" if info.get("early_preference", False) else "No"
+        early_pref = get_translations("yes") if info.get("early_preference", False) else get_translations("no")
         table.setItem(row, 1, QTableWidgetItem(early_pref))
 
         # Preferred teachers
@@ -106,7 +114,14 @@ def refresh_tandems_table(window: QWidget, data: dict) -> None:
 
     table.setRowCount(len(tandems))
     table.setColumnCount(4)
-    table.setHorizontalHeaderLabels(["Tandem Name", "Child 1", "Child 2", "Priority"])
+    table.setHorizontalHeaderLabels(
+        [
+            get_translations("tandem_name"),
+            get_translations("child_1"),
+            get_translations("child_2"),
+            get_translations("priority"),
+        ]
+    )
     table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     for row, (name, info) in enumerate(tandems.items()):

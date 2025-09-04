@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.config.logging_config import get_logger
+from app.utils import get_translations
 from app.validation import ValidationResult
 
 logger = get_logger(__name__)
@@ -95,7 +96,7 @@ class StatusManager:
 
     def show_ready(self):
         """Show ready status."""
-        self.show_status("Ready")
+        self.show_status(get_translations("status_ready"))
         self.progress_bar.setVisible(False)
 
     def _clear_temporary_status(self):

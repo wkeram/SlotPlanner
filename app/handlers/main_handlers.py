@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QComboBox, QLabel, QMessageBox, QSlider, QSpinBox,
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.ui_teachers import refresh_children_table, refresh_tandems_table, refresh_teacher_table
+from app.utils import get_translations
 from app.version import get_version
 
 from .base_handler import BaseHandler
@@ -39,14 +40,14 @@ def main_on_load_clicked(window: QWidget, storage: Storage) -> None:
 
         # Refresh all tables with loaded data and show feedback
         if hasattr(window, "feedback_manager") and window.feedback_manager:
-            window.feedback_manager.show_status("Refreshing tables...", show_progress=True)
+            window.feedback_manager.show_status(get_translations("status_refreshing_tables"), show_progress=True)
 
         refresh_teacher_table(window.ui, data)
         refresh_children_table(window.ui, data)
         refresh_tandems_table(window.ui, data)
 
         if hasattr(window, "feedback_manager") and window.feedback_manager:
-            window.feedback_manager.show_success("Data loaded successfully")
+            window.feedback_manager.show_success(get_translations("success_data_loaded"))
 
         return data
 
@@ -91,7 +92,7 @@ def _save_data_for_year(window: QWidget, storage: Storage, year: str, show_feedb
     else:
         logger.error(f"Failed to save data for year {year}")
         if show_feedback:
-            BaseHandler.show_error(window, "Save Failed", f"Failed to save data for {year}")
+            BaseHandler.show_error(window, get_translations("save_failed"), f"Failed to save data for {year}")
 
     # Refresh tables to reflect saved state with feedback
     if show_feedback and hasattr(window, "feedback_manager") and window.feedback_manager:
@@ -102,7 +103,7 @@ def _save_data_for_year(window: QWidget, storage: Storage, year: str, show_feedb
         refresh_tandems_table(window.ui, data)
 
         if success:
-            window.feedback_manager.show_success("Data saved and tables updated")
+            window.feedback_manager.show_success(get_translations("success_data_saved_and_updated"))
 
     return success
 
@@ -313,7 +314,7 @@ def _force_reload_year_data(window: QWidget, storage: Storage) -> None:
     _load_weights_into_ui(window, data)
 
     if hasattr(window, "feedback_manager") and window.feedback_manager:
-        window.feedback_manager.show_success(f"Data for {year} loaded successfully")
+        window.feedback_manager.show_success(get_translations("status_data_loaded").format(year=year))
 
 
 def _load_weights_into_ui(window: QWidget, data: dict) -> None:
@@ -373,7 +374,7 @@ def _load_schedule_results_for_year(window: QWidget, storage: Storage, year: str
 
     results = storage.get_schedule_results(year)
     if not results:
-        combo_history.setPlaceholderText("No saved results for this year")
+        combo_history.setPlaceholderText(get_translations("no_saved_results_for_year"))
         _clear_schedule_display(window)
         logger.debug(f"No schedule results found for year {year}")
         return
@@ -426,7 +427,7 @@ def _clear_schedule_display(window: QWidget) -> None:
     # Reset status label
     status_label = window.ui.findChild(QLabel, "labelStatus")
     if status_label:
-        status_label.setText("Ready to create schedule...")
+        status_label.setText(get_translations("ready_to_create_schedule"))
         logger.debug("Reset status label")
 
 
@@ -455,7 +456,7 @@ def _display_schedule_result(window: QWidget, result: dict[str, Any]) -> None:
         if violations:
             violations_text.setText("\n".join(violations))
         else:
-            violations_text.setText("No constraint violations found.")
+            violations_text.setText(get_translations("violation_no_violations"))
 
     # Update status label with detailed info
     status_label = window.ui.findChild(QLabel, "labelStatus")
@@ -581,8 +582,12 @@ def main_on_year_changed(window: QWidget, storage: Storage) -> None:
             # The UI still contains data from the previous year at this point
             if _has_unsaved_changes_for_year(window, storage, previous_year):
                 msg = QMessageBox(window)
-                msg.setWindowTitle("Save changes?")
-                msg.setText(f"Do you want to save changes to {previous_year} before switching to {current_selection}?")
+                msg.setWindowTitle(get_translations("save_changes"))
+                msg.setText(
+                    get_translations("confirm_save_changes_text").format(
+                        previous_year=previous_year, current_selection=current_selection
+                    )
+                )
                 msg.setIcon(QMessageBox.Question)
                 msg.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
                 msg.setDefaultButton(QMessageBox.Save)
@@ -630,26 +635,9 @@ def main_show_about(window: QWidget) -> None:
     Args:
         window: Main application window instance
     """
-    about_text = f"""<h2>SlotPlanner</h2>
-    <p><b>Version:</b> {get_version()}</p>
-    <p><b>Description:</b> Weekly Schedule Optimizer</p>
-    <br>
-    <p>A desktop application for intelligent weekly time slot planning using constraint optimization.</p>
-    <p>Designed to assign children to available teachers or therapists based on preferences, availability, tandem rules, and other constraints.</p>
-    <br>
-    <p><b>Features:</b></p>
-    <ul>
-    <li>45-minute time slots with 15-minute raster</li>
-    <li>Teacher and child availability management</li>
-    <li>Tandem scheduling (pairs of children)</li>
-    <li>Configurable optimization weights</li>
-    <li>PDF export for weekly schedules</li>
-    </ul>
-    <br>
-    <p><b>License:</b> MIT</p>
-    """
+    about_text = get_translations("about_content").format(version=get_version())
 
-    QMessageBox.about(window, "About SlotPlanner", about_text)
+    QMessageBox.about(window, get_translations("about"), about_text)
 
 
 def main_on_schedule_history_changed(window: QWidget, storage: Storage) -> None:
@@ -720,7 +708,9 @@ def main_on_delete_schedule_clicked(window: QWidget, storage: Storage) -> None:
         # Get result info for confirmation
         result = storage.get_schedule_result_by_id(current_year, schedule_id)
         if not result:
-            BaseHandler.show_error(window, "Error", "Selected schedule result not found.")
+            BaseHandler.show_error(
+                window, get_translations("error"), get_translations("error_selected_schedule_not_found")
+            )
             return
 
         # Confirm deletion
@@ -728,8 +718,10 @@ def main_on_delete_schedule_clicked(window: QWidget, storage: Storage) -> None:
         description = result.get("description", "Schedule Result")
 
         msg = QMessageBox(window)
-        msg.setWindowTitle("Confirm Deletion")
-        msg.setText(f"Are you sure you want to delete this schedule result?\n\n{description}\n{timestamp}")
+        msg.setWindowTitle(get_translations("confirm_deletion"))
+        msg.setText(
+            get_translations("confirm_delete_schedule_text").format(description=description, timestamp=timestamp)
+        )
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         msg.setDefaultButton(QMessageBox.No)
@@ -745,6 +737,8 @@ def main_on_delete_schedule_clicked(window: QWidget, storage: Storage) -> None:
             BaseHandler.show_info(window, "Deleted", "Schedule result has been deleted successfully.")
             logger.info(f"Deleted schedule result {schedule_id} for year {current_year}")
         else:
-            BaseHandler.show_error(window, "Error", "Failed to delete schedule result.")
+            BaseHandler.show_error(
+                window, get_translations("error"), get_translations("error_failed_delete_schedule_result")
+            )
 
     BaseHandler.safe_execute(_delete_schedule, parent=window)

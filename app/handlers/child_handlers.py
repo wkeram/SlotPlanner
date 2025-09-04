@@ -21,12 +21,72 @@ from PySide6.QtWidgets import (
 from app.config.logging_config import get_logger
 from app.storage import Storage
 from app.ui_teachers import refresh_children_table, refresh_tandems_table, refresh_teacher_table
-from app.utils import show_error
+from app.utils import get_translations, show_error
 from app.validation import Validator
 
 from .base_handler import BaseHandler
 
 logger = get_logger(__name__)
+
+
+def _setup_availability_table_headers(dialog: QWidget) -> None:
+    """Set up translated headers for the availability table in dialog.
+
+    Args:
+        dialog: Dialog containing the availability table
+    """
+    table = dialog.findChild(QTableWidget, "tableAvailability")
+    if table:
+        table.setHorizontalHeaderLabels([get_translations("day"), get_translations("start"), get_translations("end")])
+
+
+def _setup_child_dialog_translations(dialog: QWidget) -> None:
+    """Set up translations for child dialog UI elements.
+
+    Args:
+        dialog: Child dialog widget
+    """
+    from PySide6.QtWidgets import QCheckBox, QGroupBox, QLabel, QPushButton
+
+    # Update button text
+    add_slot_btn = dialog.findChild(QPushButton, "buttonAddSlot")
+    if add_slot_btn:
+        add_slot_btn.setText(get_translations("add_time_slot"))
+
+    remove_slot_btn = dialog.findChild(QPushButton, "buttonRemoveSlot")
+    if remove_slot_btn:
+        remove_slot_btn.setText(get_translations("remove_selected"))
+
+    save_btn = dialog.findChild(QPushButton, "buttonOk")
+    if save_btn:
+        save_btn.setText(get_translations("save_child"))
+
+    cancel_btn = dialog.findChild(QPushButton, "buttonCancel")
+    if cancel_btn:
+        cancel_btn.setText(get_translations("cancel"))
+
+    # Update labels
+    name_label = dialog.findChild(QLabel, "childNameLabel")
+    if name_label:
+        name_label.setText(get_translations("child_name_label"))
+
+    early_pref_label = dialog.findChild(QLabel, "earlyPreferenceLabel")
+    if early_pref_label:
+        early_pref_label.setText(get_translations("early_time_preference"))
+
+    preferred_teachers_label = dialog.findChild(QLabel, "preferredTeachersLabel")
+    if preferred_teachers_label:
+        preferred_teachers_label.setText(get_translations("preferred_teachers"))
+
+    # Update checkboxes
+    early_pref_checkbox = dialog.findChild(QCheckBox, "earlyPreferenceCheckBox")
+    if early_pref_checkbox:
+        early_pref_checkbox.setText(get_translations("prefer_early_time_slots"))
+
+    # Update group boxes
+    availability_group = dialog.findChild(QGroupBox, "availabilityGroupBox")
+    if availability_group:
+        availability_group.setTitle(get_translations("weekly_availability"))
 
 
 def child_open_add_dialog(window: QWidget, storage: Storage) -> None:
@@ -58,8 +118,14 @@ def child_open_add_dialog(window: QWidget, storage: Storage) -> None:
             show_error(error_msg, window)
             return
 
-        add_child_dialog.setWindowTitle("Add Child")
+        add_child_dialog.setWindowTitle(get_translations("add_child"))
         logger.debug("Child dialog UI loaded successfully")
+
+        # Set up availability table headers
+        _setup_availability_table_headers(add_child_dialog)
+
+        # Set up dialog UI translations
+        _setup_child_dialog_translations(add_child_dialog)
 
         # Setup dialog functionality
         _setup_child_dialog(add_child_dialog, window, storage)
@@ -86,18 +152,18 @@ def child_edit_selected(window: QWidget, storage: Storage) -> None:
     def _edit_child():
         table = window.ui.findChild(QTableWidget, "tableChildren")
         if not table:
-            show_error("Children table not found", window)
+            show_error(get_translations("error_children_table_not_found"), window)
             return
 
         selected_row = table.currentRow()
         if selected_row < 0:
-            show_error("Please select a child to edit", window)
+            show_error(get_translations("error_please_select_child_edit"), window)
             return
 
         # Get child name from first column
         name_item = table.item(selected_row, 0)
         if not name_item:
-            show_error("Could not get child name from selection", window)
+            show_error(get_translations("error_could_not_get_child_name"), window)
             return
 
         child_name = name_item.text()
@@ -109,7 +175,7 @@ def child_edit_selected(window: QWidget, storage: Storage) -> None:
         child_data = data.get("children", {}).get(child_name)
 
         if not child_data:
-            show_error(f"Child data not found for: {child_name}", window)
+            show_error(get_translations("error_child_data_not_found").format(name=child_name), window)
             return
 
         # Open edit dialog with pre-populated data
@@ -129,18 +195,18 @@ def child_delete_selected(window: QWidget, storage: Storage) -> None:
     def _delete_child():
         table = window.ui.findChild(QTableWidget, "tableChildren")
         if not table:
-            show_error("Children table not found", window)
+            show_error(get_translations("error_children_table_not_found"), window)
             return
 
         selected_row = table.currentRow()
         if selected_row < 0:
-            show_error("Please select a child to delete", window)
+            show_error(get_translations("error_please_select_child_delete"), window)
             return
 
         # Get child name from first column
         name_item = table.item(selected_row, 0)
         if not name_item:
-            show_error("Could not get child name from selection", window)
+            show_error(get_translations("error_could_not_get_child_name"), window)
             return
 
         child_name = name_item.text()
@@ -161,7 +227,13 @@ def child_delete_selected(window: QWidget, storage: Storage) -> None:
             message += f"\n\nThis will also remove the following tandems:\n• {chr(10).join(affected_tandems)}"
 
         # Confirm deletion
-        reply = QMessageBox.question(window, "Delete Child", message, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(
+            window,
+            get_translations("delete_child_dialog_title"),
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
 
         if reply != QMessageBox.Yes:
             return
@@ -194,7 +266,7 @@ def child_delete_selected(window: QWidget, storage: Storage) -> None:
             )
         else:
             logger.error(f"Failed to delete child: {child_name}")
-            show_error(f"Failed to delete child '{child_name}'", window)
+            show_error(get_translations("error_failed_delete_child").format(name=child_name), window)
 
     BaseHandler.safe_execute(_delete_child, parent=window)
 
@@ -348,7 +420,7 @@ def child_dialog_remove_selected_row(dialog: QWidget) -> None:
         logger.debug(f"Removed row {selected}")
     else:
         logger.debug("No row selected to remove")
-        show_error("Please select a row to remove.", dialog)
+        show_error(get_translations("error_please_select_row_remove"), dialog)
 
 
 def child_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage) -> None:
@@ -361,7 +433,7 @@ def child_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage) -
     """
     name_field = dialog.findChild(QLineEdit, "childNameLineEdit")
     if not name_field:
-        show_error("Child name field not found in dialog", dialog)
+        show_error(get_translations("error_child_name_field_not_found"), dialog)
         return
 
     # Validate child name
@@ -417,7 +489,12 @@ def child_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage) -
             # Validate time slot
             slot_validation = Validator.validate_time_slot(start, end)
             if not slot_validation.is_valid:
-                show_error(f"Invalid time slot on day '{day}':\n\n{slot_validation.get_error_message()}", dialog)
+                show_error(
+                    get_translations("invalid_time_slot_text").format(
+                        day=day, error=slot_validation.get_error_message()
+                    ),
+                    dialog,
+                )
                 return
 
             availability.setdefault(day, []).append([start, end])
@@ -464,10 +541,10 @@ def child_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage) -
         refresh_tandems_table(window.ui, data)
 
         if hasattr(window, "feedback_manager") and window.feedback_manager:
-            window.feedback_manager.show_success(f"Child '{name}' saved successfully")
+            window.feedback_manager.show_success(get_translations("success_child_saved").format(name=name))
     else:
         logger.error(f"Failed to save child: {name}")
-        show_error("Failed to save child data", dialog)
+        show_error(get_translations("error_failed_save_child_data"), dialog)
 
 
 def _open_child_edit_dialog(window: QWidget, storage: Storage, child_name: str, child_data: dict) -> None:
@@ -499,8 +576,14 @@ def _open_child_edit_dialog(window: QWidget, storage: Storage, child_name: str, 
         show_error(error_msg, window)
         return
 
-    edit_child_dialog.setWindowTitle(f"Edit Child: {child_name}")
+    edit_child_dialog.setWindowTitle(f"{get_translations('edit_child')}: {child_name}")
     logger.debug("Child edit dialog UI loaded successfully")
+
+    # Set up availability table headers
+    _setup_availability_table_headers(edit_child_dialog)
+
+    # Set up dialog UI translations
+    _setup_child_dialog_translations(edit_child_dialog)
 
     # Pre-populate the dialog with existing data
     _populate_child_edit_dialog(edit_child_dialog, child_name, child_data, window, storage)
@@ -654,7 +737,7 @@ def child_update_from_edit_dialog(dialog: QWidget, window: QWidget, storage: Sto
     # Get the (possibly changed) child name
     name_field = dialog.findChild(QLineEdit, "childNameLineEdit")
     if not name_field:
-        show_error("Child name field not found in dialog", dialog)
+        show_error(get_translations("error_child_name_field_not_found"), dialog)
         return
 
     new_child_name = name_field.text().strip()
@@ -669,7 +752,7 @@ def child_update_from_edit_dialog(dialog: QWidget, window: QWidget, storage: Sto
     name_changed = new_child_name != original_child_name
     if name_changed:
         if new_child_name in data.get("children", {}):
-            show_error(f"A child named '{new_child_name}' already exists. Please choose a different name.", dialog)
+            show_error(get_translations("error_child_already_exists").format(name=new_child_name), dialog)
             return
 
         # Confirm name change with user
@@ -720,7 +803,12 @@ def child_update_from_edit_dialog(dialog: QWidget, window: QWidget, storage: Sto
             # Validate time slot
             slot_validation = Validator.validate_time_slot(start, end)
             if not slot_validation.is_valid:
-                show_error(f"Invalid time slot on day '{day}':\n\n{slot_validation.get_error_message()}", dialog)
+                show_error(
+                    get_translations("invalid_time_slot_text").format(
+                        day=day, error=slot_validation.get_error_message()
+                    ),
+                    dialog,
+                )
                 return
 
             availability.setdefault(day, []).append([start, end])
@@ -806,10 +894,10 @@ def child_update_from_edit_dialog(dialog: QWidget, window: QWidget, storage: Sto
                     f"Child renamed from '{original_child_name}' to '{child_name}' successfully"
                 )
             else:
-                window.feedback_manager.show_success(f"Child '{child_name}' updated successfully")
+                window.feedback_manager.show_success(get_translations("success_child_updated").format(name=child_name))
     else:
         logger.error(f"Failed to update child: {child_name}")
-        show_error("Failed to update child data", dialog)
+        show_error(get_translations("error_failed_update_child_data"), dialog)
 
 
 def _add_availability_row_with_data(dialog: QWidget, day: str, start_time: str, end_time: str) -> None:
