@@ -195,13 +195,17 @@ jobs:
               } else {
                 Write-Host "⚠️ Verification shows warnings (expected for self-signed certificates)"
               }
+              # Always exit successfully after successful signing, regardless of verification warnings
+              exit 0
             } else {
               Write-Host "⚠️ Signing failed but continuing with unsigned executable"
+              exit 0
             }
           } else {
             Write-Host "⚠️ SignTool not found - executable will remain unsigned"
             Write-Host "Available Windows SDK paths:"
             Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+            exit 0
           }
 
       - name: Build application (macOS)
