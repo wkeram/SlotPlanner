@@ -25,7 +25,7 @@ on:
         default: false
 
 env:
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   validate-version:
@@ -44,12 +44,14 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Validate version format
         id: validate
@@ -100,36 +102,42 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0 libegl1-mesa libgl1-mesa-glx
+        continue-on-error: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
           enable-cache: true
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Update version
         env:
           VERSION: ${{ needs.validate-version.outputs.version }}
-        run: uv run python scripts/version-manager.py set "$VERSION"
+        run: uv run python scripts/version-manager.py set "$VERSION" --no-interactive
 
       - name: Run tests
         run: uv run python tests/test_runner.py fast
         env:
           QT_QPA_PLATFORM: ${{ matrix.os == 'ubuntu-latest' && 'offscreen' || '' }}
+        continue-on-error: false
 
       - name: Run linting
         run: |
           uv run ruff check app/ tests/
           uv run black --check app/ tests/
+        continue-on-error: false
 
       - name: Run type checking
         run: uv run mypy app/
+        continue-on-error: false
 
       - name: Build application (Windows)
         if: matrix.os == 'windows-latest'
@@ -196,12 +204,14 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Update version in repository
         run: |
@@ -260,6 +270,8 @@ jobs:
             COMMITS=$(git log --oneline --pretty=format:"- %s" | head -20)
             CHANGELOG_LINK="https://github.com/${{ github.repository }}/commits/v$VERSION"
           fi
+
+          echo "✅ Generated release notes for version $VERSION"
 
           cat > release_notes.md << EOF
           ## SlotPlanner v$VERSION
@@ -331,12 +343,14 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Update main branch with new version
         run: |
@@ -347,7 +361,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Update version on main branch
-          uv run python scripts/version-manager.py set "$VERSION"
+          uv run python scripts/version-manager.py set "$VERSION" --no-interactive
 
           # Commit and push if there are changes
           if git diff --quiet version.json; then

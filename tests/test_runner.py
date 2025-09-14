@@ -4,43 +4,74 @@ Provides test execution commands and result reporting.
 """
 
 import sys
+from pathlib import Path
 
 import pytest
 
 
 def run_optimizer_tests():
     """Run only optimizer tests."""
-    return pytest.main(["tests/optimizer/", "-v", "-m", "optimizer or not ui", "--tb=short"])
+    test_path = Path("tests/optimizer")
+    if not test_path.exists():
+        print(f"Warning: Test directory {test_path} does not exist")
+        return 0
+    return pytest.main([str(test_path), "-v", "-m", "optimizer or not ui", "--tb=short"])
 
 
 def run_ui_tests():
     """Run only UI tests (requires display)."""
-    return pytest.main(["tests/ui/", "-v", "-m", "ui", "--tb=short"])
+    test_path = Path("tests/ui")
+    if not test_path.exists():
+        print(f"Warning: Test directory {test_path} does not exist")
+        return 0
+    return pytest.main([str(test_path), "-v", "-m", "ui", "--tb=short"])
 
 
 def run_all_tests():
     """Run all tests."""
-    return pytest.main(["tests/", "-v", "--tb=short"])
+    test_path = Path("tests")
+    if not test_path.exists():
+        print(f"Error: Test directory {test_path} does not exist")
+        return 1
+    return pytest.main([str(test_path), "-v", "--tb=short"])
 
 
 def run_fast_tests():
     """Run fast tests only (excluding slow performance tests)."""
-    return pytest.main(["tests/", "-v", "-m", "not slow and not performance", "--tb=short"])
+    test_path = Path("tests")
+    if not test_path.exists():
+        print(f"Error: Test directory {test_path} does not exist")
+        return 1
+    return pytest.main([str(test_path), "-v", "-m", "not slow and not performance", "--tb=short"])
 
 
 def run_integration_tests():
     """Run integration tests only."""
-    return pytest.main(["tests/", "-v", "-m", "integration", "--tb=short"])
+    test_path = Path("tests")
+    if not test_path.exists():
+        print(f"Error: Test directory {test_path} does not exist")
+        return 1
+    return pytest.main([str(test_path), "-v", "-m", "integration", "--tb=short"])
 
 
 def run_performance_tests():
     """Run performance tests only."""
-    return pytest.main(["tests/", "-v", "-m", "performance", "--tb=long"])
+    test_path = Path("tests")
+    if not test_path.exists():
+        print(f"Error: Test directory {test_path} does not exist")
+        return 1
+    return pytest.main([str(test_path), "-v", "-m", "performance", "--tb=long"])
 
 
 def run_tests_with_coverage():
     """Run tests with coverage reporting."""
-    return pytest.main(["tests/", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missing", "--tb=short"])
+    test_path = Path("tests")
+    if not test_path.exists():
+        print(f"Error: Test directory {test_path} does not exist")
+        return 1
+    return pytest.main(
+        [str(test_path), "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missing", "--tb=short"]
+    )
 
 
 def main():
@@ -59,22 +90,29 @@ def main():
 
     command = sys.argv[1].lower()
 
-    if command == "optimizer":
-        return run_optimizer_tests()
-    elif command == "ui":
-        return run_ui_tests()
-    elif command == "fast":
-        return run_fast_tests()
-    elif command == "integration":
-        return run_integration_tests()
-    elif command == "performance":
-        return run_performance_tests()
-    elif command == "coverage":
-        return run_tests_with_coverage()
-    elif command == "all":
-        return run_all_tests()
-    else:
-        print(f"Unknown command: {command}")
+    try:
+        if command == "optimizer":
+            exit_code = run_optimizer_tests()
+        elif command == "ui":
+            exit_code = run_ui_tests()
+        elif command == "fast":
+            exit_code = run_fast_tests()
+        elif command == "integration":
+            exit_code = run_integration_tests()
+        elif command == "performance":
+            exit_code = run_performance_tests()
+        elif command == "coverage":
+            exit_code = run_tests_with_coverage()
+        elif command == "all":
+            exit_code = run_all_tests()
+        else:
+            print(f"Unknown command: {command}")
+            return 1
+
+        # Ensure proper exit code
+        return 0 if exit_code == 0 else 1
+    except Exception as e:
+        print(f"Error running tests: {e}")
         return 1
 
 
