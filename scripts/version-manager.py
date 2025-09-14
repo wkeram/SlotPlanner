@@ -114,51 +114,77 @@ class VersionManager:
 
     def set_version(self, new_version: str, create_tag: bool = False, interactive: bool = True) -> bool:
         """Set a new version with validation."""
-        print(f"Setting version to: {new_version}")
-
-        # Validate semantic version
-        if not self.validate_semantic_version(new_version):
-            print(f"ERROR: Invalid semantic version: {new_version}")
-            print("Version must follow semantic versioning (e.g., 1.0.0, 1.0.0-alpha.1, 1.0.0+build.123)")
-            return False
-
-        # Check if version already exists as git tag (skip in CI to avoid blocking)
         import os
+        import platform
 
-        if not os.environ.get("CI") and self.check_git_tag_exists(new_version):
-            print(f"ERROR: Version v{new_version} already exists as a git tag!")
-            print("Choose a different version or delete the existing tag first.")
+        print(f"Setting version to: {new_version}")
+        print(f"Platform: {platform.system()}")
+        print(f"CI environment: {os.environ.get('CI', 'not set')}")
+        print(f"Working directory: {self.project_root}")
+
+        try:
+            # Validate semantic version
+            if not self.validate_semantic_version(new_version):
+                print(f"ERROR: Invalid semantic version: {new_version}")
+                print("Version must follow semantic versioning (e.g., 1.0.0, 1.0.0-alpha.1, 1.0.0+build.123)")
+                return False
+
+            # Check if version already exists as git tag (skip in CI to avoid blocking)
+            if not os.environ.get("CI") and self.check_git_tag_exists(new_version):
+                print(f"ERROR: Version v{new_version} already exists as a git tag!")
+                print("Choose a different version or delete the existing tag first.")
+                return False
+            elif os.environ.get("CI"):
+                print(f"CI environment detected - skipping git tag check for v{new_version}")
+
+        except Exception as e:
+            print(f"ERROR: Unexpected error during validation: {e}")
             return False
-        elif os.environ.get("CI"):
-            print(f"CI environment detected - skipping git tag check for v{new_version}")
 
         # Parse version components
         try:
+            print("Parsing version components...")
             major, minor, patch, pre_release, build = self.parse_version(new_version)
+            print(f"Parsed: major={major}, minor={minor}, patch={patch}, pre_release={pre_release}, build={build}")
         except ValueError as e:
             print(f"ERROR: Error parsing version: {e}")
             return False
+        except Exception as e:
+            print(f"ERROR: Unexpected error parsing version: {e}")
+            return False
 
         # Load current data and update
-        data = self.load_version_data()
-        old_version = data["version"]
+        try:
+            print("Loading current version data...")
+            data = self.load_version_data()
+            old_version = data["version"]
+            print(f"Current version: {old_version}")
 
-        data["version"] = new_version
-        data["version_info"] = {
-            "major": major,
-            "minor": minor,
-            "patch": patch,
-            "pre_release": pre_release,
-            "build": build,
-        }
-        data["last_updated"] = datetime.now(UTC).isoformat()
+            print("Updating version data...")
+            data["version"] = new_version
+            data["version_info"] = {
+                "major": major,
+                "minor": minor,
+                "patch": patch,
+                "pre_release": pre_release,
+                "build": build,
+            }
+            data["last_updated"] = datetime.now(UTC).isoformat()
+
+        except Exception as e:
+            print(f"ERROR: Failed to load or prepare version data: {e}")
+            return False
 
         # Save updated version
         try:
+            print("Saving version data...")
             self.save_version_data(data)
             print(f"SUCCESS: Version updated: {old_version} -> {new_version}")
         except RuntimeError as e:
             print(f"ERROR: Failed to save version: {e}")
+            return False
+        except Exception as e:
+            print(f"ERROR: Unexpected error saving version: {e}")
             return False
 
         # Create git tag if requested

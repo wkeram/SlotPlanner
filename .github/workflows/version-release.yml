@@ -100,27 +100,9 @@ jobs:
       - name: Install system dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "::group::Update package lists"
-          sudo apt-get update -qq || { echo "Failed to update package lists"; exit 1; }
-          echo "::endgroup::"
-
-          echo "::group::Install Qt dependencies"
-          sudo apt-get install -y -qq \
-            xvfb \
-            libxkbcommon-x11-0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-randr0 \
-            libxcb-render-util0 \
-            libxcb-shape0 \
-            libxcb-xfixes0 \
-            libxcb-xinerama0 \
-            libxcb-cursor0 \
-            libegl1-mesa \
-            libgl1-mesa-glx || { echo "Failed to install Qt dependencies"; exit 1; }
-          echo "::endgroup::"
-        continue-on-error: false
+          sudo apt-get update -q
+          sudo apt-get install -y xvfb
+        continue-on-error: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -137,9 +119,7 @@ jobs:
         continue-on-error: false
 
       - name: Update version
-        env:
-          VERSION: ${{ needs.validate-version.outputs.version }}
-        run: uv run python scripts/version-manager.py set "$VERSION" --no-interactive
+        run: uv run python scripts/version-manager.py set "${{ needs.validate-version.outputs.version }}" --no-interactive
 
       - name: Run tests
         run: uv run python tests/test_runner.py fast
@@ -372,14 +352,12 @@ jobs:
 
       - name: Update main branch with new version
         run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Update version on main branch
-          uv run python scripts/version-manager.py set "$VERSION" --no-interactive
+          uv run python scripts/version-manager.py set "${{ needs.validate-version.outputs.version }}" --no-interactive
 
           # Commit and push if there are changes
           if git diff --quiet version.json; then
