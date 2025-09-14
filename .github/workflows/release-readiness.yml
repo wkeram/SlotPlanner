@@ -58,7 +58,7 @@ jobs:
         id: translation-check
         run: |
           echo "🌍 Running strict translation validation..."
-          uv run python -m pytest tests/test_translation_coverage.py::TestStrictTranslationCoverage -v --tb=short --junit-xml=translation-report.xml
+          uv run python -m pytest tests/ -m strict -v --tb=short --junit-xml=translation-report.xml
         continue-on-error: true
 
       - name: Run comprehensive linting
