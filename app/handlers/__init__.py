@@ -5,6 +5,8 @@ and functionality areas.
 """
 
 # Import specific functions that are used by the GUI
+from .main_handlers import *
+from .child_handlers import *
 from .main_handlers import _unsaved_changes
 
 __all__ = [
