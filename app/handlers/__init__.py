@@ -8,6 +8,7 @@ and functionality areas.
 from .child_handlers import *  # noqa: F403
 from .main_handlers import *  # noqa: F403
 from .main_handlers import _unsaved_changes
+from .settings_handlers import *  # noqa: F403
 
 __all__ = [
     # Re-export all imported functions for backward compatibility
