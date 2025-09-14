@@ -23,7 +23,7 @@ jobs:
           # Test additional Python versions on Ubuntu only
           - os: ubuntu-latest
             python-version: "3.12"
-          - os: ubuntu-latest  
+          - os: ubuntu-latest
             python-version: "3.11"
 
     steps:
@@ -58,7 +58,7 @@ jobs:
 
     - name: Run fast integration tests (no UI)
       run: |
-        uv run pytest tests/ -m "not ui and not slow" --tb=short -v
+        uv run python tests/test_runner.py fast
       env:
         QT_QPA_PLATFORM: offscreen
 
@@ -78,7 +78,7 @@ jobs:
     - name: Generate test report
       if: always()
       run: |
-        uv run pytest tests/ --junitxml=test-results-${{ matrix.os }}-py${{ matrix.python-version }}.xml --tb=short
+        uv run pytest tests/ -m "not strict" --junitxml=test-results-${{ matrix.os }}-py${{ matrix.python-version }}.xml --tb=short
       env:
         QT_QPA_PLATFORM: offscreen
       continue-on-error: true
@@ -94,7 +94,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     needs: test
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -119,7 +119,7 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        uv run pytest tests/ --cov=app --cov-report=xml --cov-report=html --cov-report=term-missing --tb=short
+        uv run python tests/test_runner.py coverage
       env:
         QT_QPA_PLATFORM: offscreen
 
@@ -180,7 +180,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -233,7 +233,7 @@ jobs:
         echo "" >> test-summary.md
         echo "## Test Matrix Results" >> test-summary.md
         echo "" >> test-summary.md
-        
+
         for dir in test-results-*/; do
           if [ -d "$dir" ]; then
             echo "- $dir: " >> test-summary.md
@@ -244,7 +244,7 @@ jobs:
             fi
           fi
         done
-        
+
         echo "" >> test-summary.md
         echo "## Coverage Report" >> test-summary.md
         if [ -d "coverage-report/" ]; then
@@ -252,7 +252,7 @@ jobs:
         else
           echo "- Coverage report not available" >> test-summary.md
         fi
-        
+
         echo "" >> test-summary.md
         echo "## Security Scan" >> test-summary.md
         if [ -d "security-reports/" ]; then
@@ -260,7 +260,7 @@ jobs:
         else
           echo "- Security scan not available" >> test-summary.md
         fi
-        
+
         cat test-summary.md
 
     - name: Upload test summary
@@ -277,7 +277,7 @@ jobs:
         script: |
           const fs = require('fs');
           const summary = fs.readFileSync('test-summary.md', 'utf8');
-          
+
           github.rest.checks.create({
             owner: context.repo.owner,
             repo: context.repo.repo,

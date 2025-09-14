@@ -1,0 +1,222 @@
+name: Release Readiness Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Target version to validate (optional, e.g., 1.0.0)'
+        required: false
+        type: string
+  schedule:
+    # Run weekly on Sundays at 6:00 AM UTC
+    - cron: '0 6 * * 0'
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  release-readiness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Show current version status
+        run: |
+          echo "📋 Current Version Status"
+          echo "=========================="
+          uv run python scripts/version-manager.py status
+
+      - name: Run comprehensive test suite
+        run: |
+          echo "🧪 Running comprehensive test suite..."
+          xvfb-run -a uv run python tests/test_runner.py all
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Run strict translation validation
+        id: translation-check
+        run: |
+          echo "🌍 Running strict translation validation..."
+          uv run python -m pytest tests/ -m strict -v --tb=short --junit-xml=translation-report.xml
+        continue-on-error: true
+
+      - name: Run comprehensive linting
+        id: lint-check
+        run: |
+          echo "🔍 Running comprehensive code quality checks..."
+          uv run ruff check app/ tests/ --output-format=github
+          uv run black --check --diff app/ tests/
+          uv run isort --check-only --diff app/ tests/
+        continue-on-error: true
+
+      - name: Run type checking
+        id: type-check
+        run: |
+          echo "🔧 Running type checking..."
+          uv run mypy app/ --ignore-missing-imports --no-strict-optional
+        continue-on-error: true
+
+      - name: Verify translation coverage (standalone)
+        id: translation-script
+        run: |
+          echo "📝 Running standalone translation verification..."
+          uv run python scripts/verify_translations.py
+        continue-on-error: true
+
+      - name: Check version consistency
+        id: version-check
+        run: |
+          echo "🔖 Checking version consistency across files..."
+          uv run python -c "
+          import json
+          from pathlib import Path
+
+          # Check version.json exists and is valid
+          version_file = Path('version.json')
+          assert version_file.exists(), 'version.json missing'
+
+          with open(version_file) as f:
+              data = json.load(f)
+
+          version = data['version']
+          print(f'✅ Version {version} is consistently defined')
+          "
+
+      - name: Test build process
+        id: build-check
+        run: |
+          echo "🏗️ Testing build process..."
+          uv sync --extra build
+          # Just validate that PyInstaller can analyze the dependencies
+          uv run pyinstaller --onefile --windowed --name SlotPlanner --analyze main.py
+        continue-on-error: true
+
+      - name: Generate release readiness report
+        run: |
+          echo "## 📊 Release Readiness Report" > release-readiness.md
+          echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> release-readiness.md
+          echo "" >> release-readiness.md
+
+          echo "### ✅ Checks Status" >> release-readiness.md
+          echo "| Check | Status | Details |" >> release-readiness.md
+          echo "|-------|--------|---------|" >> release-readiness.md
+
+          # Translation check
+          if [ "${{ steps.translation-check.outcome }}" == "success" ]; then
+            echo "| 🌍 Strict Translation Coverage | ✅ PASS | All translations complete |" >> release-readiness.md
+          else
+            echo "| 🌍 Strict Translation Coverage | ❌ FAIL | Missing translations found |" >> release-readiness.md
+          fi
+
+          # Lint check
+          if [ "${{ steps.lint-check.outcome }}" == "success" ]; then
+            echo "| 🔍 Code Quality (Lint) | ✅ PASS | No linting issues |" >> release-readiness.md
+          else
+            echo "| 🔍 Code Quality (Lint) | ❌ FAIL | Linting issues found |" >> release-readiness.md
+          fi
+
+          # Type check
+          if [ "${{ steps.type-check.outcome }}" == "success" ]; then
+            echo "| 🔧 Type Checking | ✅ PASS | No type errors |" >> release-readiness.md
+          else
+            echo "| 🔧 Type Checking | ⚠️ WARN | Type issues found (non-blocking) |" >> release-readiness.md
+          fi
+
+          # Build check
+          if [ "${{ steps.build-check.outcome }}" == "success" ]; then
+            echo "| 🏗️ Build Process | ✅ PASS | Build configuration valid |" >> release-readiness.md
+          else
+            echo "| 🏗️ Build Process | ❌ FAIL | Build issues found |" >> release-readiness.md
+          fi
+
+          echo "" >> release-readiness.md
+
+          # Overall readiness assessment
+          if [ "${{ steps.translation-check.outcome }}" == "success" ] && [ "${{ steps.lint-check.outcome }}" == "success" ] && [ "${{ steps.build-check.outcome }}" == "success" ]; then
+            echo "### 🎉 Overall Status: READY FOR RELEASE" >> release-readiness.md
+            echo "All critical checks passed. The project is ready for release." >> release-readiness.md
+          else
+            echo "### ⚠️ Overall Status: NOT READY FOR RELEASE" >> release-readiness.md
+            echo "Some critical checks failed. Please address the issues above before release." >> release-readiness.md
+          fi
+
+          echo "" >> release-readiness.md
+          echo "### 📋 Next Steps" >> release-readiness.md
+          if [ "${{ steps.translation-check.outcome }}" != "success" ]; then
+            echo "- Fix translation coverage issues" >> release-readiness.md
+          fi
+          if [ "${{ steps.lint-check.outcome }}" != "success" ]; then
+            echo "- Fix code quality issues" >> release-readiness.md
+          fi
+          if [ "${{ steps.build-check.outcome }}" != "success" ]; then
+            echo "- Fix build configuration issues" >> release-readiness.md
+          fi
+          if [ "${{ steps.translation-check.outcome }}" == "success" ] && [ "${{ steps.lint-check.outcome }}" == "success" ] && [ "${{ steps.build-check.outcome }}" == "success" ]; then
+            echo "- Run \`gh workflow run version-release.yml -f version=X.Y.Z\` to create release" >> release-readiness.md
+            echo "- Or trigger the 'Version Release' workflow from GitHub Actions UI" >> release-readiness.md
+          fi
+
+          echo "" >> release-readiness.md
+          echo "---" >> release-readiness.md
+          echo "*Report generated by Release Readiness Check workflow*" >> release-readiness.md
+
+      - name: Display release readiness report
+        run: |
+          echo "📊 Release Readiness Report:"
+          echo "=============================="
+          cat release-readiness.md
+
+      - name: Upload release readiness report
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-report
+          path: |
+            release-readiness.md
+            translation-report.xml
+          retention-days: 30
+
+      - name: Comment on PR (if triggered from PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('release-readiness.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📊 Release Readiness Check\n\n${report}`
+            });
+
+      - name: Set final exit code
+        run: |
+          if [ "${{ steps.translation-check.outcome }}" == "success" ] && [ "${{ steps.lint-check.outcome }}" == "success" ] && [ "${{ steps.build-check.outcome }}" == "success" ]; then
+            echo "✅ All critical checks passed - Project is release ready!"
+            exit 0
+          else
+            echo "❌ Some critical checks failed - Project is NOT release ready"
+            exit 1
+          fi

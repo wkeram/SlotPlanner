@@ -37,6 +37,15 @@ uv run python tests/test_runner.py coverage
 # Run fast tests (development cycle)
 uv run python tests/test_runner.py fast
 
+# Run strict translation validation (release readiness)
+uv run python tests/test_runner.py strict
+
+# Verify translation coverage (standalone script)
+uv run python scripts/verify_translations.py
+
+# Check release readiness (automated validation)
+gh workflow run release-readiness.yml
+
 # Check CI/CD readiness
 uv run python scripts/check-status.py
 ```
@@ -174,15 +183,16 @@ SlotPlanner uses semantic versioning (SemVer) with centralized version managemen
 - **Automation**: GitHub Actions workflow handles building, testing, and releases
 
 ### Release Process
-1. **Pre-Release**: Run `uv run python scripts/version-manager.py status` to check current state
-2. **Version Check**: Use `scripts/version-manager.py` to validate new version doesn't exist
-3. **Set Version**: Run `uv run python scripts/version-manager.py set X.Y.Z` to update version
-4. **GitHub Release**: Trigger "Version Release" workflow with version number
-5. **Automated Steps**:
-   - Validates version format and checks for existing tags
-   - Runs tests and builds for all platforms (Windows, macOS, Linux)
-   - Creates GitHub release with artifacts and auto-generated notes
-   - Creates and pushes git tag to main branch
+1. **Pre-Release Validation**: Run `gh workflow run release-readiness.yml` to check if ready for release
+2. **Address Issues**: Fix any translation coverage, linting, or build issues identified
+3. **Final Validation**: Ensure all strict checks pass with `uv run python tests/test_runner.py strict`
+4. **Create Release**: Trigger "Version Release" workflow: `gh workflow run version-release.yml -f version=X.Y.Z`
+5. **Automated Release Steps**:
+   - **Translation Validation**: Runs strict translation coverage tests (MUST pass)
+   - **Quality Gates**: Validates version format, runs comprehensive tests, linting
+   - **Multi-Platform Builds**: Creates executables for Windows, macOS, Linux
+   - **GitHub Release**: Creates release with artifacts and auto-generated notes
+   - **Version Management**: Creates and pushes git tag, updates main branch
 
 ### Version Guidelines
 - **Major** (X.0.0): Breaking changes, major new features
@@ -195,3 +205,5 @@ SlotPlanner uses semantic versioning (SemVer) with centralized version managemen
 - Always use the version management script for consistency
 - The GitHub Actions workflow ensures no duplicate tags are created
 - Version updates are automatically synced between feature branches and main
+- **Automated Translation Validation**: Release workflow REQUIRES perfect translation coverage to proceed
+- **Release Readiness Checks**: Use the release-readiness workflow to validate before attempting release
