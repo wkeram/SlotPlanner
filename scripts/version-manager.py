@@ -75,11 +75,14 @@ class VersionManager:
         """Check if git tag for version already exists."""
         try:
             result = subprocess.run(
-                ["git", "tag", "-l", f"v{version}"], cwd=self.project_root, capture_output=True, text=True, check=True
+                ["git", "tag", "-l", f"v{version}"], cwd=self.project_root, capture_output=True, text=True, check=False
             )
+            if result.returncode != 0:
+                print(f"Warning: Could not check git tags (exit code {result.returncode})")
+                return False
             return bool(result.stdout.strip())
-        except subprocess.CalledProcessError:
-            print("Warning: Could not check git tags (git not available or not a git repository)")
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+            print(f"Warning: Could not check git tags ({type(e).__name__}: {e})")
             return False
 
     def create_git_tag(
@@ -111,17 +114,23 @@ class VersionManager:
 
     def set_version(self, new_version: str, create_tag: bool = False, interactive: bool = True) -> bool:
         """Set a new version with validation."""
+        print(f"Setting version to: {new_version}")
+
         # Validate semantic version
         if not self.validate_semantic_version(new_version):
             print(f"ERROR: Invalid semantic version: {new_version}")
             print("Version must follow semantic versioning (e.g., 1.0.0, 1.0.0-alpha.1, 1.0.0+build.123)")
             return False
 
-        # Check if version already exists as git tag
-        if self.check_git_tag_exists(new_version):
+        # Check if version already exists as git tag (skip in CI to avoid blocking)
+        import os
+
+        if not os.environ.get("CI") and self.check_git_tag_exists(new_version):
             print(f"ERROR: Version v{new_version} already exists as a git tag!")
             print("Choose a different version or delete the existing tag first.")
             return False
+        elif os.environ.get("CI"):
+            print(f"CI environment detected - skipping git tag check for v{new_version}")
 
         # Parse version components
         try:

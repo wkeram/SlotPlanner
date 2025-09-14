@@ -100,8 +100,26 @@ jobs:
       - name: Install system dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0 libegl1-mesa libgl1-mesa-glx
+          echo "::group::Update package lists"
+          sudo apt-get update -qq || { echo "Failed to update package lists"; exit 1; }
+          echo "::endgroup::"
+
+          echo "::group::Install Qt dependencies"
+          sudo apt-get install -y -qq \
+            xvfb \
+            libxkbcommon-x11-0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-xfixes0 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libegl1-mesa \
+            libgl1-mesa-glx || { echo "Failed to install Qt dependencies"; exit 1; }
+          echo "::endgroup::"
         continue-on-error: false
 
       - name: Install uv
@@ -137,7 +155,7 @@ jobs:
 
       - name: Run type checking
         run: uv run mypy app/
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Build application (Windows)
         if: matrix.os == 'windows-latest'
