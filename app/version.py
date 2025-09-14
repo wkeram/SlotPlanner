@@ -28,7 +28,7 @@ def load_version_info() -> dict[str, Any]:
         with open(version_file, encoding="utf-8") as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError) as e:
-        raise RuntimeError(f"Failed to load version information: {e}")
+        raise RuntimeError(f"Failed to load version information: {e}") from e
 
 
 def get_version() -> str:

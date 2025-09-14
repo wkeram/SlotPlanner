@@ -57,3 +57,6 @@ htmlcov/
 *.app
 app_config.json
 default_weights.json
+
+# Claude worktree management
+.claude-wt/worktrees

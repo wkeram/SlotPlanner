@@ -37,6 +37,15 @@ uv run python tests/test_runner.py coverage
 # Run fast tests (development cycle)
 uv run python tests/test_runner.py fast
 
+# Run strict translation validation (release readiness)
+uv run python tests/test_runner.py strict
+
+# Verify translation coverage (standalone script)
+uv run python scripts/verify_translations.py
+
+# Check release readiness (automated validation)
+gh workflow run release-readiness.yml
+
 # Check CI/CD readiness
 uv run python scripts/check-status.py
 ```
@@ -77,7 +86,7 @@ uv run python scripts/version-manager.py tag
 
 SlotPlanner is a **production-ready** PySide6 desktop application with comprehensive CI/CD pipeline. Core functionality is implemented including:
 
-- ✅ Teacher management with availability scheduling  
+- ✅ Teacher management with availability scheduling
 - ✅ OR-Tools constraint optimization engine
 - ✅ PDF export of weekly schedules
 - ✅ JSON data persistence per school year
@@ -96,10 +105,12 @@ Functional requirements are documented in `README.md` and must be respected when
 ## UI/UX Best Practices
 
 - Visual Hierarchy: Limit typography to 4–5 font sizes and weights for consistent hierarchy; use `text-xs` for captions and annotations; avoid `text-xl` unless for hero or major headings.
-- Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors. 
+- Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors.
 - Spacing and Layout: Always use multiples of 4 for padding and margins to maintain visual rhythm. Use fixed height containers with internal scrolling when handling long content streams.
 - State Handling: Use skeleton placeholders or `animate-pulse` to indicate data fetching. Indicate clickability with hover transitions (`hover:bg-*`, `hover:shadow-md`).
-- User-facing texts should be stored in English and German language in `app/config/translations.json` and loaded from there to ensure multi-language support.
+- **Translation Requirement**: ALL user-facing text strings must be translatable. Store all UI text in English and German in `app/config/translations.json` and use `get_translations()` function for loading. No hardcoded strings in UI elements are allowed.
+- **Dialog Translation**: All dialog boxes must implement translation setup functions that update UI elements when dialogs are opened (see `_setup_*_dialog_translations()` pattern in handler modules).
+- **Translation Coverage**: Use `scripts/verify_translations.py` to verify complete translation coverage before releases.
 
 ## Architecture
 
@@ -107,7 +118,7 @@ SlotPlanner is a PySide6-based desktop application for optimizing weekly schedul
 
 ### Core Structure
 - **GUI**: Qt Designer UI files (`.ui`) define the interface layout
-  - `main_window.ui` - Main interface with 5 tabs (Teachers, Children, Tandems, Settings, Results)  
+  - `main_window.ui` - Main interface with 5 tabs (Teachers, Children, Tandems, Settings, Results)
   - `add_teacher.ui` - Dialog for adding new teachers
 - **Data Layer**: JSON-based persistence in `app/storage.py`
   - One file per school year: `data/YYYY_YYYY.json`
@@ -148,7 +159,7 @@ version.json          # Single source of truth for version
 
 ### Technologies
 - **PySide6**: All UI components and Qt framework integration
-- **OR-Tools**: Constraint programming optimization engine  
+- **OR-Tools**: Constraint programming optimization engine
 - **ReportLab**: PDF generation for schedule exports
 - **PyInstaller**: Creates standalone Windows executable via GitHub Actions
 
@@ -172,15 +183,16 @@ SlotPlanner uses semantic versioning (SemVer) with centralized version managemen
 - **Automation**: GitHub Actions workflow handles building, testing, and releases
 
 ### Release Process
-1. **Pre-Release**: Run `uv run python scripts/version-manager.py status` to check current state
-2. **Version Check**: Use `scripts/version-manager.py` to validate new version doesn't exist
-3. **Set Version**: Run `uv run python scripts/version-manager.py set X.Y.Z` to update version
-4. **GitHub Release**: Trigger "Version Release" workflow with version number
-5. **Automated Steps**: 
-   - Validates version format and checks for existing tags
-   - Runs tests and builds for all platforms (Windows, macOS, Linux)
-   - Creates GitHub release with artifacts and auto-generated notes
-   - Creates and pushes git tag to main branch
+1. **Pre-Release Validation**: Run `gh workflow run release-readiness.yml` to check if ready for release
+2. **Address Issues**: Fix any translation coverage, linting, or build issues identified
+3. **Final Validation**: Ensure all strict checks pass with `uv run python tests/test_runner.py strict`
+4. **Create Release**: Trigger "Version Release" workflow: `gh workflow run version-release.yml -f version=X.Y.Z`
+5. **Automated Release Steps**:
+   - **Translation Validation**: Runs strict translation coverage tests (MUST pass)
+   - **Quality Gates**: Validates version format, runs comprehensive tests, linting
+   - **Multi-Platform Builds**: Creates executables for Windows, macOS, Linux
+   - **GitHub Release**: Creates release with artifacts and auto-generated notes
+   - **Version Management**: Creates and pushes git tag, updates main branch
 
 ### Version Guidelines
 - **Major** (X.0.0): Breaking changes, major new features
@@ -193,3 +205,5 @@ SlotPlanner uses semantic versioning (SemVer) with centralized version managemen
 - Always use the version management script for consistency
 - The GitHub Actions workflow ensures no duplicate tags are created
 - Version updates are automatically synced between feature branches and main
+- **Automated Translation Validation**: Release workflow REQUIRES perfect translation coverage to proceed
+- **Release Readiness Checks**: Use the release-readiness workflow to validate before attempting release

@@ -16,8 +16,7 @@ class TestCICDValidation:
         try:
             import app.storage
             import app.ui_feedback
-            import app.utils
-            import app.validation
+            import app.utils  # noqa: F401
 
             assert True, "Core modules imported successfully"
         except ImportError as e:
@@ -81,9 +80,9 @@ class TestCICDValidation:
         # This test would be run in CI to ensure dependencies are correct
         # For now, just check that key modules can be imported
         try:
-            import ortools
-            import PySide6
-            import reportlab
+            import ortools  # noqa: F401
+            import PySide6  # noqa: F401
+            import reportlab  # noqa: F401
 
             assert True, "Key dependencies are available"
         except ImportError as e:

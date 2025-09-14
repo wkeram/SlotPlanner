@@ -1,12 +1,12 @@
 {
-  "version": "1.0.0",
+  "version": "0.1.0",
   "version_info": {
-    "major": 1,
-    "minor": 0,
+    "major": 0,
+    "minor": 1,
     "patch": 0,
     "pre_release": null,
     "build": null
   },
-  "last_updated": "2025-09-01T22:01:20.734564+00:00",
+  "last_updated": "2025-09-14T12:57:55.866740+00:00",
   "changelog_url": "https://github.com/wkeram/SlotPlanner/releases"
 }

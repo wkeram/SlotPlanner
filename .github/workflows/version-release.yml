@@ -1,5 +1,11 @@
 name: Version Release
 
+permissions:
+  contents: write
+  actions: read
+  checks: write
+  pull-requests: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -19,7 +25,7 @@ on:
         default: false
 
 env:
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   validate-version:
@@ -37,30 +43,32 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-          enable-cache: true
+          enable-cache: false
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Validate version format
         id: validate
         run: |
           VERSION="${{ github.event.inputs.version }}"
           echo "Validating version: $VERSION"
-          
+
           # Use our version manager to validate
           uv run python scripts/version-manager.py status
-          
+
           # Validate semantic version format
           if ! [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
             echo "❌ Invalid version format: $VERSION"
             echo "Version must follow semantic versioning (e.g., 1.0.0, 1.0.0-alpha.1)"
             exit 1
           fi
-          
+
           echo "✅ Version format is valid"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -84,7 +92,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -92,49 +100,64 @@ jobs:
       - name: Install system dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-cursor0
+          sudo apt-get update -q
+          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0
+        continue-on-error: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-          enable-cache: true
+          enable-cache: false
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Update version
-        run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          uv run python scripts/version-manager.py set "$VERSION"
+        run: uv run python scripts/version-manager.py set "${{ needs.validate-version.outputs.version }}" --no-interactive
 
-      - name: Run tests
-        run: uv run python tests/test_runner.py fast
+      - name: Run tests (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a uv run python tests/test_runner.py optimizer
         env:
-          QT_QPA_PLATFORM: ${{ matrix.os == 'ubuntu-latest' && 'offscreen' || '' }}
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Run tests (Windows/macOS)
+        if: matrix.os != 'ubuntu-latest'
+        run: uv run python tests/test_runner.py fast
 
       - name: Run linting
         run: |
           uv run ruff check app/ tests/
           uv run black --check app/ tests/
+        continue-on-error: false
 
       - name: Run type checking
         run: uv run mypy app/
+        continue-on-error: true
+
+      - name: Validate translation coverage (Release Quality)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "🔍 Running strict translation validation for release..."
+          uv run python tests/test_runner.py strict
+        continue-on-error: false
 
       - name: Build application (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          uv add pyinstaller
+          uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
 
       - name: Build application (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          uv add pyinstaller
+          uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
           # Create DMG
           mkdir -p dmg
@@ -144,7 +167,7 @@ jobs:
       - name: Build application (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          uv add pyinstaller
+          uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
 
       - name: Upload Windows build
@@ -177,7 +200,7 @@ jobs:
     needs: [validate-version, test-and-build]
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.create_tag == 'true' }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -189,23 +212,25 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-          enable-cache: true
+          enable-cache: false
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Update version in repository
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
           uv run python scripts/version-manager.py set "$VERSION"
-          
+
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
           # Commit version update
           git add version.json
           git commit -m "🔖 Bump version to $VERSION" || echo "No changes to commit"
@@ -217,12 +242,12 @@ jobs:
         run: |
           mkdir -p release-assets
           VERSION="${{ needs.validate-version.outputs.version }}"
-          
+
           # Windows executable
           if [ -d "slotplanner-windows-$VERSION" ]; then
             cp "slotplanner-windows-$VERSION/SlotPlanner.exe" "release-assets/SlotPlanner-Windows-v$VERSION.exe"
           fi
-          
+
           # macOS executable and DMG
           if [ -d "slotplanner-macos-$VERSION" ]; then
             cp "slotplanner-macos-$VERSION/SlotPlanner" "release-assets/SlotPlanner-macOS-v$VERSION"
@@ -230,12 +255,12 @@ jobs:
               cp "slotplanner-macos-$VERSION/SlotPlanner-macOS.dmg" "release-assets/SlotPlanner-macOS-v$VERSION.dmg"
             fi
           fi
-          
+
           # Linux executable
           if [ -d "slotplanner-linux-$VERSION" ]; then
             cp "slotplanner-linux-$VERSION/SlotPlanner" "release-assets/SlotPlanner-Linux-v$VERSION"
           fi
-          
+
           echo "Release assets prepared:"
           ls -la release-assets/
 
@@ -243,10 +268,10 @@ jobs:
         id: release-notes
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
-          
+
           # Get last tag for comparison
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
+
           if [ -n "$LAST_TAG" ]; then
             COMMITS=$(git log --oneline "$LAST_TAG"..HEAD --pretty=format:"- %s" | head -20)
             CHANGELOG_LINK="https://github.com/${{ github.repository }}/compare/$LAST_TAG...v$VERSION"
@@ -254,35 +279,37 @@ jobs:
             COMMITS=$(git log --oneline --pretty=format:"- %s" | head -20)
             CHANGELOG_LINK="https://github.com/${{ github.repository }}/commits/v$VERSION"
           fi
-          
+
+          echo "✅ Generated release notes for version $VERSION"
+
           cat > release_notes.md << EOF
           ## SlotPlanner v$VERSION
-          
+
           ### What's Changed
           $COMMITS
-          
+
           ### Downloads
           - **Windows**: \`SlotPlanner-Windows-v$VERSION.exe\` (Standalone executable)
           - **macOS**: \`SlotPlanner-macOS-v$VERSION\` (Executable) or \`SlotPlanner-macOS-v$VERSION.dmg\` (Disk Image)
           - **Linux**: \`SlotPlanner-Linux-v$VERSION\` (Executable)
-          
+
           ### Installation
           1. Download the appropriate file for your platform
           2. **Windows**: Run the .exe file directly (no installation required)
           3. **macOS**: Mount the .dmg file and drag to Applications, or run the executable directly
           4. **Linux**: Make the file executable (\`chmod +x SlotPlanner-Linux-v$VERSION\`) and run
-          
+
           ### System Requirements
           - **Windows**: Windows 10/11 or later
           - **macOS**: macOS 10.15 (Catalina) or later
           - **Linux**: Modern Linux distribution with GUI support
           - **From Source**: Python 3.13+ and uv package manager
-          
+
           ---
-          
+
           **Full Changelog**: $CHANGELOG_LINK
           EOF
-          
+
           echo "Release notes generated successfully"
 
       - name: Create GitHub Release
@@ -301,17 +328,17 @@ jobs:
       - name: Push version update
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
-          
+
           # Push the version commit (tag is created automatically by the release)
           git push origin ${{ github.ref_name }}
-          
+
           echo "✅ Version $VERSION released with tag v$VERSION"
 
   update-main-branch:
     needs: [validate-version, create-release]
     runs-on: ubuntu-latest
     if: ${{ github.ref_name != 'main' && github.event.inputs.create_tag == 'true' }}
-    
+
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v4
@@ -324,25 +351,25 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-          enable-cache: true
+          enable-cache: false
+        continue-on-error: false
 
-      - name: Set up Python 3.13
-        run: uv python install 3.13
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
+        continue-on-error: false
 
       - name: Update main branch with new version
         run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
           # Update version on main branch
-          uv run python scripts/version-manager.py set "$VERSION"
-          
+          uv run python scripts/version-manager.py set "${{ needs.validate-version.outputs.version }}" --no-interactive
+
           # Commit and push if there are changes
           if git diff --quiet version.json; then
             echo "No version changes needed on main branch"

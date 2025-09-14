@@ -2,11 +2,11 @@
 
 [![Tests](https://github.com/wkeram/SlotPlanner/workflows/Tests/badge.svg)](https://github.com/wkeram/SlotPlanner/actions/workflows/test.yml)
 [![Coverage Status](https://codecov.io/gh/wkeram/SlotPlanner/branch/main/graph/badge.svg)](https://codecov.io/gh/wkeram/SlotPlanner)
-[![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)](https://python.org)
+[![Python Version](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/wkeram/SlotPlanner)](https://github.com/wkeram/SlotPlanner/releases)
 
-**SlotPlanner** is a local desktop application for intelligent weekly time slot planning using constraint optimization.  
+**SlotPlanner** is a local desktop application for intelligent weekly time slot planning using constraint optimization.
 It is designed to assign children to available teachers or therapists based on preferences, availability, tandem rules, and other constraints.
 
 ---
@@ -188,12 +188,12 @@ Structure includes:
 
 ### For Users
 Download the latest release for your platform:
-- **Windows**: Download `SlotPlanner.exe` 
+- **Windows**: Download `SlotPlanner.exe`
 - **macOS**: Download `SlotPlanner.app` or `SlotPlanner.dmg`
 - **Linux**: Download `SlotPlanner.AppImage`
 
 ### For Developers
-1. Install Python 3.13+ and `uv` package manager:
+1. Install Python 3.12+ and `uv` package manager:
    ```bash
    # Install uv (cross-platform)
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -223,14 +223,14 @@ uv run main.py
 uv run python tests/test_runner.py all
 
 # Run only optimizer tests (fastest)
-uv run python tests/test_runner.py optimizer  
+uv run python tests/test_runner.py optimizer
 
 # Run with coverage reporting
 uv run python tests/test_runner.py coverage
 
 # Code quality checks
 uv run black app/ tests/        # Format code
-uv run ruff check app/ tests/   # Lint code  
+uv run ruff check app/ tests/   # Lint code
 uv run mypy app/                # Type checking
 ```
 
@@ -260,8 +260,8 @@ uv run python scripts/version-manager.py set 1.0.0 --tag
 
 #### Version Update Workflow
 1. **During Development**: Use `bump patch/minor/major` for incremental changes
-2. **Pre-Release Testing**: Create alpha/beta versions for testing cycles  
-3. **Release Process**: 
+2. **Pre-Release Testing**: Create alpha/beta versions for testing cycles
+3. **Release Process**:
    - **Local**: Use `set X.Y.Z --tag` to create version and git tag
    - **Automated**: Trigger GitHub "Version Release" workflow for full CI/CD pipeline
 
@@ -276,14 +276,14 @@ The GitHub Actions workflow handles the complete release pipeline:
 
 Version information is centrally managed in `version.json` and automatically synchronized across:
 - Application UI (About dialog, window title)
-- Package builds (`pyproject.toml`)  
+- Package builds (`pyproject.toml`)
 - Release artifacts and documentation
 - Git tags and GitHub releases
 
 ### Test Coverage
 The project maintains comprehensive test coverage including:
 - **Optimizer Tests**: 25+ tests covering constraint optimization, weight handling, and edge cases
-- **UI Tests**: Integration tests for GUI components and user workflows  
+- **UI Tests**: Integration tests for GUI components and user workflows
 - **Performance Tests**: Scalability testing with large datasets (200+ children)
 - **Cross-Platform Tests**: Windows, macOS, and Linux compatibility
 
@@ -293,7 +293,7 @@ See [tests/README.md](tests/README.md) for detailed testing documentation.
 
 ### Automated Testing
 - **Pull Request Checks**: Linting, formatting, quick tests, documentation checks
-- **Main Branch Tests**: Full test suite across Python 3.11-3.13 on Windows, macOS, Linux
+- **Main Branch Tests**: Full test suite across Python 3.12-3.13 on Windows, macOS, Linux
 - **Nightly Tests**: Comprehensive testing, stress tests, compatibility checks
 - **Coverage Reporting**: Automated coverage tracking with [Codecov](https://codecov.io)
 
@@ -326,8 +326,3 @@ All builds are automatically tested and verified before release.
 ## 📄 License
 
 MIT License – see [LICENSE](LICENSE)
-
-
-
-
-

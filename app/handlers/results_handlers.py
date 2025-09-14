@@ -18,7 +18,7 @@ except ImportError:
 
 from app.config.logging_config import get_logger
 from app.storage import Storage
-from app.utils import show_error
+from app.utils import get_translations, show_error
 
 from .base_handler import BaseHandler
 
@@ -60,9 +60,9 @@ def results_create_schedule(window: QWidget, storage: Storage) -> None:
         weights = data.get("weights", {})
 
         if not teachers or not children:
-            show_error("Cannot create schedule: No teachers or children defined.", window)
+            show_error(get_translations("error_cannot_create_schedule_no_data"), window)
             if hasattr(window, "feedback_manager") and window.feedback_manager:
-                window.feedback_manager.show_error("Schedule creation failed - missing data")
+                window.feedback_manager.show_error(get_translations("status_schedule_failed_missing_data"))
             return
 
         # Run optimization (fast enough at ~0.08 seconds)
@@ -86,7 +86,7 @@ def _show_ortools_dependency_error(window: QWidget) -> None:
         "After installation, please restart the application.\n\n"
         "For more information, visit: https://developers.google.com/optimization/install"
     )
-    BaseHandler.show_error(window, "Missing Dependency", error_message)
+    BaseHandler.show_error(window, get_translations("missing_dependency"), error_message)
 
 
 def _run_optimization(
@@ -156,7 +156,7 @@ def _run_optimization(
             )
         else:
             logger.error("Failed to save schedule results")
-            show_error("Failed to save schedule results", window)
+            show_error(get_translations("error_failed_save_schedule_results"), window)
 
     except Exception as e:
         logger.error(f"Optimization failed: {e}")
@@ -172,9 +172,9 @@ def _run_optimization(
             logger.error(f"Error hiding progress bar: {e2}")
 
         if hasattr(window, "feedback_manager") and window.feedback_manager:
-            window.feedback_manager.show_error("Schedule creation failed")
+            window.feedback_manager.show_error(get_translations("status_schedule_failed"))
 
-        show_error(f"Schedule creation failed: {str(e)}", window)
+        show_error(get_translations("schedule_creation_failed_text").format(error=str(e)), window)
 
 
 def results_export_pdf(window: QWidget, storage: Storage) -> None:
@@ -187,11 +187,7 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
 
     def _export_pdf():
         try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-            from reportlab.lib.units import inch
-            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+            from reportlab.platypus import SimpleDocTemplate  # noqa: F401
         except ImportError:
             show_error(
                 "ReportLab is not installed. PDF export requires ReportLab.\n\n"
@@ -208,7 +204,7 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
 
         schedule = data.get("schedule", {})
         if not schedule:
-            show_error("No schedule to export. Please create a schedule first.", window)
+            show_error(get_translations("error_no_schedule_to_export"), window)
             return
 
         # Show progress
@@ -245,10 +241,10 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
         except Exception as e:
             logger.error(f"PDF export failed: {e}")
             logger.error(traceback.format_exc())
-            show_error(f"PDF export failed: {str(e)}", window)
+            show_error(get_translations("pdf_export_failed_text").format(error=str(e)), window)
 
             if hasattr(window, "feedback_manager") and window.feedback_manager:
-                window.feedback_manager.show_error("PDF export failed")
+                window.feedback_manager.show_error(get_translations("status_pdf_failed"))
 
     BaseHandler.safe_execute(_export_pdf, parent=window)
 
@@ -557,13 +553,19 @@ def _populate_schedule_table(table, schedule):
                 all_teachers.add(assignment.get("teacher"))
 
     sorted_times = sorted(all_times)
-    days = ["Mo", "Di", "Mi", "Do", "Fr"]
+    days = [
+        get_translations("mo"),
+        get_translations("di"),
+        get_translations("mi"),
+        get_translations("do"),
+        get_translations("fr"),
+    ]
 
     # Setup table
     table.setRowCount(len(sorted_times))
     table.setColumnCount(len(days) + 1)  # +1 for time range column
 
-    headers = ["Time Range"] + days
+    headers = [get_translations("time_range")] + days
     table.setHorizontalHeaderLabels(headers)
 
     # Create bold font for teacher names
@@ -658,7 +660,11 @@ def generate_schedule_pdf(data, filename):
 
     # Title
     title_style = ParagraphStyle(
-        "CustomTitle", parent=styles["Heading1"], fontSize=24, spaceAfter=30, alignment=1  # Center
+        "CustomTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=1,  # Center
     )
     story.append(Paragraph("SlotPlanner - Weekly Schedule", title_style))
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
@@ -789,7 +795,7 @@ def generate_schedule_pdf(data, filename):
     # Violations summary
     if violations:
         story.append(PageBreak())
-        story.append(Paragraph("Constraint Violations", styles["Heading2"]))
+        story.append(Paragraph(get_translations("pdf_constraint_violations"), styles["Heading2"]))
         for violation in violations:
             story.append(Paragraph(f"• {violation}", styles["Normal"]))
 
