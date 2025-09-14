@@ -154,6 +154,45 @@ jobs:
           uv sync --extra build
           uv run pyinstaller --onefile --windowed --name SlotPlanner main.py
 
+      - name: Sign Windows executable (Self-signed)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          # Create self-signed certificate for code signing
+          $cert = New-SelfSignedCertificate -Subject "CN=SlotPlanner Developer" -Type CodeSigningCert -KeyUsage DigitalSignature -FriendlyName "SlotPlanner Code Signing" -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable -KeySpec Signature -KeyLength 2048 -KeyAlgorithm RSA -HashAlgorithm SHA256
+
+          # Find signtool.exe
+          $signtool = "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+          if (!(Test-Path $signtool)) {
+            $signtool = "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe"
+          }
+          if (!(Test-Path $signtool)) {
+            # Try to find any available version
+            $kitPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+            $signtool = Get-ChildItem -Path $kitPath -Recurse -Name "signtool.exe" | Select-Object -First 1
+            if ($signtool) {
+              $signtool = Join-Path $kitPath $signtool
+            }
+          }
+
+          if (Test-Path $signtool) {
+            Write-Host "Signing executable with self-signed certificate..."
+            # Sign using the certificate thumbprint
+            & $signtool sign /sha1 $cert.Thumbprint /tr "http://timestamp.digicert.com" /td SHA256 /fd SHA256 "dist\SlotPlanner.exe"
+
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ Executable signed successfully with self-signed certificate"
+              # Verify signature
+              & $signtool verify /v "dist\SlotPlanner.exe"
+            } else {
+              Write-Host "⚠️ Signing failed but continuing with unsigned executable"
+            }
+          } else {
+            Write-Host "⚠️ SignTool not found - executable will remain unsigned"
+            Write-Host "Available Windows SDK paths:"
+            Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+          }
+
       - name: Build application (macOS)
         if: matrix.os == 'macos-latest'
         run: |

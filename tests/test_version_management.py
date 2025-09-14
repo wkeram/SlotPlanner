@@ -325,17 +325,13 @@ class TestVersionIntegration:
 
         main_version = version_data["version"]
 
-        # Check if version appears in other files (when they exist)
-        files_to_check = [
-            ("app/version.py", f'VERSION = "{main_version}"'),
-            ("pyproject.toml", f'version = "{main_version}"'),
-        ]
+        # Verify that app/version.py can load the version correctly
+        import sys
 
-        for file_path, _expected_pattern in files_to_check:
-            file_obj = Path(file_path)
-            if file_obj.exists():
-                with open(file_obj, encoding="utf-8") as f:
-                    content = f.read()
-                    # For now, just check if the version appears somewhere
-                    # Can be made more strict later
-                    assert main_version in content, f"Version {main_version} not found in {file_path}"
+        sys.path.insert(0, str(Path.cwd()))
+        from app.version import get_version
+
+        loaded_version = get_version()
+        assert (
+            loaded_version == main_version
+        ), f"Dynamic version loading failed: expected {main_version}, got {loaded_version}"
