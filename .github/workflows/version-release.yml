@@ -182,8 +182,15 @@ jobs:
 
             if ($LASTEXITCODE -eq 0) {
               Write-Host "✅ Executable signed successfully with self-signed certificate"
-              # Verify signature
-              & $signtool verify /v "dist\SlotPlanner.exe"
+              # Verify signature (non-blocking - self-signed certs will show verification warning)
+              Write-Host "Verifying signature..."
+              & $signtool verify /v "dist\SlotPlanner.exe" 2>$null
+              $verifyExitCode = $LASTEXITCODE
+              if ($verifyExitCode -eq 0) {
+                Write-Host "✅ Signature verification passed"
+              } else {
+                Write-Host "⚠️ Verification failed (expected for self-signed certificates)"
+              }
             } else {
               Write-Host "⚠️ Signing failed but continuing with unsigned executable"
             }
