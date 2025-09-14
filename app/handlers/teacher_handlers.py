@@ -36,7 +36,7 @@ def _setup_teacher_dialog_translations(dialog: QWidget) -> None:
     Args:
         dialog: Teacher dialog widget
     """
-    from PySide6.QtWidgets import QCheckBox, QLabel, QPushButton
+    from PySide6.QtWidgets import QLabel, QPushButton
 
     # Update button text
     add_slot_btn = dialog.findChild(QPushButton, "buttonAddSlot")
