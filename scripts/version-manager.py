@@ -102,6 +102,9 @@ class VersionManager:
             if interactive and not push:
                 response = input("Push tag to remote? (y/N): ").lower().strip()
                 should_push = response in ("y", "yes")
+            elif not interactive and not push:
+                # In non-interactive mode, default to not pushing unless explicitly requested
+                should_push = False
 
             if should_push:
                 subprocess.run(["git", "push", "origin", tag_name], cwd=self.project_root, check=True)
@@ -314,7 +317,8 @@ Examples:
         elif args.command == "tag":
             version = vm.get_current_version()
             interactive = not getattr(args, "no_interactive", False)
-            success = vm.create_git_tag(version, interactive=interactive)
+            # In non-interactive mode for tag command, don't push by default
+            success = vm.create_git_tag(version, push=False, interactive=interactive)
             return 0 if success else 1
     except Exception as e:
         print(f"❌ Unexpected error: {e}")

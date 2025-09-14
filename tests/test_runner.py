@@ -28,21 +28,21 @@ def run_ui_tests():
 
 
 def run_all_tests():
-    """Run all tests."""
+    """Run all tests (excluding strict release validation tests)."""
     test_path = Path("tests")
     if not test_path.exists():
         print(f"Error: Test directory {test_path} does not exist")
         return 1
-    return pytest.main([str(test_path), "-v", "--tb=short"])
+    return pytest.main([str(test_path), "-v", "-m", "not strict", "--tb=short"])
 
 
 def run_fast_tests():
-    """Run fast tests only (excluding slow performance tests)."""
+    """Run fast tests only (excluding slow performance tests and strict validation)."""
     test_path = Path("tests")
     if not test_path.exists():
         print(f"Error: Test directory {test_path} does not exist")
         return 1
-    return pytest.main([str(test_path), "-v", "-m", "not slow and not performance", "--tb=short"])
+    return pytest.main([str(test_path), "-v", "-m", "not slow and not performance and not strict", "--tb=short"])
 
 
 def run_integration_tests():
@@ -64,14 +64,32 @@ def run_performance_tests():
 
 
 def run_tests_with_coverage():
-    """Run tests with coverage reporting."""
+    """Run tests with coverage reporting (excluding strict release validation tests)."""
     test_path = Path("tests")
     if not test_path.exists():
         print(f"Error: Test directory {test_path} does not exist")
         return 1
     return pytest.main(
-        [str(test_path), "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missing", "--tb=short"]
+        [
+            str(test_path),
+            "-v",
+            "-m",
+            "not strict",
+            "--cov=app",
+            "--cov-report=html",
+            "--cov-report=term-missing",
+            "--tb=short",
+        ]
     )
+
+
+def run_strict_tests():
+    """Run strict validation tests (for release readiness)."""
+    test_path = Path("tests")
+    if not test_path.exists():
+        print(f"Error: Test directory {test_path} does not exist")
+        return 1
+    return pytest.main([str(test_path), "-v", "-m", "strict", "--tb=short"])
 
 
 def main():
@@ -81,11 +99,12 @@ def main():
         print("Commands:")
         print("  optimizer    - Run optimizer tests only")
         print("  ui           - Run UI tests only")
-        print("  fast         - Run fast tests (no performance tests)")
+        print("  fast         - Run fast tests (no performance or strict tests)")
         print("  integration  - Run integration tests only")
         print("  performance  - Run performance tests only")
-        print("  coverage     - Run tests with coverage")
-        print("  all          - Run all tests")
+        print("  coverage     - Run tests with coverage (no strict tests)")
+        print("  strict       - Run strict validation tests (release readiness)")
+        print("  all          - Run all tests (no strict tests)")
         return 1
 
     command = sys.argv[1].lower()
@@ -103,6 +122,8 @@ def main():
             exit_code = run_performance_tests()
         elif command == "coverage":
             exit_code = run_tests_with_coverage()
+        elif command == "strict":
+            exit_code = run_strict_tests()
         elif command == "all":
             exit_code = run_all_tests()
         else:
