@@ -10,7 +10,7 @@ from datetime import datetime
 
 from PySide6.QtCore import QFile, QIODevice
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QMainWindow, QPushButton, QSlider
+from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QMainWindow, QPushButton, QSlider, QTextEdit
 
 from app import handlers
 from app.config.logging_config import get_logger
@@ -82,7 +82,7 @@ class SlotPlannerApp(QMainWindow):
                 self.setCentralWidget(loaded_widget)
                 self.ui = loaded_widget
 
-            self.setWindowTitle("SlotPlanner - Weekly Schedule Optimizer")
+            self.setWindowTitle(get_translations("app_title"))
             self.resize(1000, 700)
             logger.info("UI loaded successfully")
         else:
@@ -92,7 +92,7 @@ class SlotPlannerApp(QMainWindow):
 
             fallback_widget = QWidget()
             layout = QVBoxLayout(fallback_widget)
-            label = QLabel("Error: Could not load main_window_v2.ui")
+            label = QLabel(get_translations("error_could_not_load_ui"))
             layout.addWidget(label)
             self.setCentralWidget(fallback_widget)
             self.ui = fallback_widget
@@ -211,7 +211,7 @@ class SlotPlannerApp(QMainWindow):
                         logger.error(traceback.format_exc())
                         from PySide6.QtWidgets import QMessageBox
 
-                        QMessageBox.critical(self, "Error", f"An error occurred:\n{str(e)}")
+                        QMessageBox.critical(self, get_translations("error"), f"An error occurred:\n{str(e)}")
 
                 button.clicked.connect(safe_callback)
                 logger.debug(f"Connected {button_name}")
@@ -276,7 +276,7 @@ class SlotPlannerApp(QMainWindow):
     def initialize_data(self):
         """Initialize the application with default data and populate year dropdown."""
         if hasattr(self, "feedback_manager") and self.feedback_manager:
-            self.feedback_manager.show_status("Initializing application data...", show_progress=True)
+            self.feedback_manager.show_status(get_translations("status_initializing_data"), show_progress=True)
 
         # Populate year dropdown with current and next school years
         current_year = datetime.now().year
@@ -317,8 +317,8 @@ class SlotPlannerApp(QMainWindow):
 
             reply = QMessageBox.question(
                 self,
-                "Save Changes?",
-                "You have unsaved changes. Do you want to save them before exiting?",
+                get_translations("save_changes_before_exit"),
+                get_translations("unsaved_changes_message"),
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                 QMessageBox.Save,
             )
@@ -408,6 +408,17 @@ class SlotPlannerApp(QMainWindow):
             self._update_group_box_text("groupBoxScheduleHistory", "saved_schedule_results")
             self._update_label_text("labelSelectSchedule", "select_result")
             self._update_button_text("buttonDeleteSchedule", "delete_selected")
+
+            # Results tab subtabs
+            results_tab_widget = self.ui.findChild(QTabWidget, "tabWidgetResults")
+            if results_tab_widget:
+                results_tab_widget.setTabText(0, get_translations("schedule_view"))
+                results_tab_widget.setTabText(1, get_translations("violations"))
+
+            # Set violations placeholder text
+            violations_text = self.ui.findChild(QTextEdit, "textViolations")
+            if violations_text:
+                violations_text.setPlaceholderText(get_translations("schedule_violations_placeholder"))
 
             # Bottom buttons
             self._update_button_text("buttonAbout", "about")

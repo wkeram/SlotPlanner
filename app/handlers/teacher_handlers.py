@@ -19,6 +19,48 @@ from .base_handler import BaseHandler
 logger = get_logger(__name__)
 
 
+def _setup_availability_table_headers(dialog: QWidget) -> None:
+    """Set up translated headers for the availability table in dialog.
+
+    Args:
+        dialog: Dialog containing the availability table
+    """
+    table = dialog.findChild(QTableWidget, "tableAvailability")
+    if table:
+        table.setHorizontalHeaderLabels([get_translations("day"), get_translations("start"), get_translations("end")])
+
+
+def _setup_teacher_dialog_translations(dialog: QWidget) -> None:
+    """Set up translations for teacher dialog UI elements.
+
+    Args:
+        dialog: Teacher dialog widget
+    """
+    from PySide6.QtWidgets import QCheckBox, QLabel, QPushButton
+
+    # Update button text
+    add_slot_btn = dialog.findChild(QPushButton, "buttonAddSlot")
+    if add_slot_btn:
+        add_slot_btn.setText(get_translations("add_slot"))
+
+    remove_slot_btn = dialog.findChild(QPushButton, "buttonRemoveSlot")
+    if remove_slot_btn:
+        remove_slot_btn.setText(get_translations("remove_slot"))
+
+    save_btn = dialog.findChild(QPushButton, "buttonOk")
+    if save_btn:
+        save_btn.setText(get_translations("save_teacher"))
+
+    cancel_btn = dialog.findChild(QPushButton, "buttonCancel")
+    if cancel_btn:
+        cancel_btn.setText(get_translations("cancel"))
+
+    # Update labels
+    name_label = dialog.findChild(QLabel, "teacherNameLabel")
+    if name_label:
+        name_label.setText(get_translations("name"))
+
+
 def teacher_open_add_teacher_dialog(window: QWidget, storage: Storage) -> None:
     """Open the dialog for adding a new teacher.
 
@@ -48,8 +90,14 @@ def teacher_open_add_teacher_dialog(window: QWidget, storage: Storage) -> None:
             show_error(error_msg, window)
             return
 
-        add_teacher_dialog.setWindowTitle("Add Teacher")
+        add_teacher_dialog.setWindowTitle(get_translations("add_teacher"))
         logger.debug("Teacher dialog UI loaded successfully")
+
+        # Set up availability table headers
+        _setup_availability_table_headers(add_teacher_dialog)
+
+        # Set up dialog UI translations
+        _setup_teacher_dialog_translations(add_teacher_dialog)
 
         # Setup dialog buttons with error checking
         _setup_teacher_dialog_buttons(add_teacher_dialog, window, storage)
@@ -120,7 +168,7 @@ def teacher_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage)
     """
     name_field = dialog.findChild(QLineEdit, "teacherNameLineEdit")
     if not name_field:
-        show_error("Teacher name field not found in dialog", dialog)
+        show_error(get_translations("error_teacher_name_field_not_found"), dialog)
         return
 
     name = name_field.text().replace(" ", "_").strip()
@@ -130,7 +178,7 @@ def teacher_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage)
 
     table = dialog.findChild(QTableWidget, "tableAvailability")
     if not table:
-        show_error("Availability table not found in dialog", dialog)
+        show_error(get_translations("error_availability_table_not_found"), dialog)
         return
 
     availability = {}
@@ -150,7 +198,10 @@ def teacher_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage)
         # Validate time slot
         slot_validation = Validator.validate_time_slot(start, end)
         if not slot_validation.is_valid:
-            show_error(f"Invalid time slot on day '{day}':\n\n{slot_validation.get_error_message()}", dialog)
+            show_error(
+                get_translations("invalid_time_slot_text").format(day=day, error=slot_validation.get_error_message()),
+                dialog,
+            )
             return
 
         availability.setdefault(day, []).append([start, end])
@@ -158,7 +209,12 @@ def teacher_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage)
     # Validate complete availability
     availability_validation = Validator.validate_teacher_availability(availability)
     if not availability_validation.is_valid:
-        show_error(f"Teacher availability validation failed:\n\n{availability_validation.get_error_message()}", dialog)
+        show_error(
+            get_translations("teacher_availability_validation_failed").format(
+                error=availability_validation.get_error_message()
+            ),
+            dialog,
+        )
         return
 
     # Show warnings for availability if any
@@ -191,7 +247,7 @@ def teacher_save_from_dialog(dialog: QWidget, window: QWidget, storage: Storage)
         refresh_tandems_table(window.ui, data)
     else:
         logger.error(f"Failed to save teacher: {name}")
-        show_error("Failed to save teacher data", dialog)
+        show_error(get_translations("error_failed_save_teacher_data"), dialog)
 
 
 def teacher_dialog_add_availability_row(dialog: QWidget) -> None:
@@ -270,7 +326,7 @@ def teacher_dialog_remove_selected_row(dialog: QWidget) -> None:
         logger.debug(f"Removed row {selected}")
     else:
         logger.debug("No row selected to remove")
-        show_error("Please select a row to remove.", dialog)
+        show_error(get_translations("error_please_select_row_remove"), dialog)
 
 
 def teacher_edit_selected(window: QWidget, storage: Storage) -> None:
@@ -284,18 +340,18 @@ def teacher_edit_selected(window: QWidget, storage: Storage) -> None:
     def _edit_teacher():
         table = window.ui.findChild(QTableWidget, "tableTeachers")
         if not table:
-            show_error("Teachers table not found", window)
+            show_error(get_translations("error_teachers_table_not_found"), window)
             return
 
         selected_row = table.currentRow()
         if selected_row < 0:
-            show_error("Please select a teacher to edit", window)
+            show_error(get_translations("error_please_select_teacher_edit"), window)
             return
 
         # Get teacher name from first column
         name_item = table.item(selected_row, 0)
         if not name_item:
-            show_error("Could not get teacher name from selection", window)
+            show_error(get_translations("error_could_not_get_teacher_name"), window)
             return
 
         teacher_name = name_item.text()
@@ -307,7 +363,7 @@ def teacher_edit_selected(window: QWidget, storage: Storage) -> None:
         teacher_data = data.get("teachers", {}).get(teacher_name)
 
         if not teacher_data:
-            show_error(f"Teacher data not found for: {teacher_name}", window)
+            show_error(get_translations("error_teacher_data_not_found").format(name=teacher_name), window)
             return
 
         # Open edit dialog with pre-populated data
@@ -327,18 +383,18 @@ def teacher_delete_selected(window: QWidget, storage: Storage) -> None:
     def _delete_teacher():
         table = window.ui.findChild(QTableWidget, "tableTeachers")
         if not table:
-            show_error("Teachers table not found", window)
+            show_error(get_translations("error_teachers_table_not_found"), window)
             return
 
         selected_row = table.currentRow()
         if selected_row < 0:
-            show_error("Please select a teacher to delete", window)
+            show_error(get_translations("error_please_select_teacher_delete"), window)
             return
 
         # Get teacher name from first column
         name_item = table.item(selected_row, 0)
         if not name_item:
-            show_error("Could not get teacher name from selection", window)
+            show_error(get_translations("error_could_not_get_teacher_name"), window)
             return
 
         teacher_name = name_item.text()
@@ -411,10 +467,12 @@ def teacher_delete_selected(window: QWidget, storage: Storage) -> None:
             BaseHandler.show_info(window, "Teacher Deleted", success_message)
 
             if hasattr(window, "feedback_manager") and window.feedback_manager:
-                window.feedback_manager.show_success(f"Teacher '{teacher_name}' deleted successfully")
+                window.feedback_manager.show_success(
+                    get_translations("success_teacher_deleted").format(name=teacher_name)
+                )
         else:
             logger.error(f"Failed to delete teacher: {teacher_name}")
-            show_error(f"Failed to delete teacher '{teacher_name}'", window)
+            show_error(get_translations("error_failed_delete_teacher").format(name=teacher_name), window)
 
     BaseHandler.safe_execute(_delete_teacher, parent=window)
 
@@ -448,8 +506,14 @@ def _open_teacher_edit_dialog(window: QWidget, storage: Storage, teacher_name: s
         show_error(error_msg, window)
         return
 
-    edit_teacher_dialog.setWindowTitle(f"Edit Teacher: {teacher_name}")
+    edit_teacher_dialog.setWindowTitle(f"{get_translations('edit_teacher')}: {teacher_name}")
     logger.debug("Teacher edit dialog UI loaded successfully")
+
+    # Set up availability table headers
+    _setup_availability_table_headers(edit_teacher_dialog)
+
+    # Set up dialog UI translations
+    _setup_teacher_dialog_translations(edit_teacher_dialog)
 
     # Pre-populate the dialog with existing data
     _populate_teacher_edit_dialog(edit_teacher_dialog, teacher_name, teacher_data)
@@ -568,7 +632,7 @@ def teacher_update_from_edit_dialog(
     # Get the (possibly changed) teacher name
     name_field = dialog.findChild(QLineEdit, "teacherNameLineEdit")
     if not name_field:
-        show_error("Teacher name field not found in dialog", dialog)
+        show_error(get_translations("error_teacher_name_field_not_found"), dialog)
         return
 
     new_teacher_name = name_field.text().replace(" ", "_").strip()
@@ -587,7 +651,7 @@ def teacher_update_from_edit_dialog(
     name_changed = new_teacher_name != original_teacher_name
     if name_changed:
         if new_teacher_name in data.get("teachers", {}):
-            show_error(f"A teacher named '{new_teacher_name}' already exists. Please choose a different name.", dialog)
+            show_error(get_translations("error_teacher_already_exists").format(name=new_teacher_name), dialog)
             return
 
         # Confirm name change with user
@@ -609,7 +673,7 @@ def teacher_update_from_edit_dialog(
     # Get availability from table
     table = dialog.findChild(QTableWidget, "tableAvailability")
     if not table:
-        show_error("Availability table not found in dialog", dialog)
+        show_error(get_translations("error_availability_table_not_found"), dialog)
         return
 
     availability = {}
@@ -629,7 +693,10 @@ def teacher_update_from_edit_dialog(
         # Validate time slot
         slot_validation = Validator.validate_time_slot(start, end)
         if not slot_validation.is_valid:
-            show_error(f"Invalid time slot on day '{day}':\n\n{slot_validation.get_error_message()}", dialog)
+            show_error(
+                get_translations("invalid_time_slot_text").format(day=day, error=slot_validation.get_error_message()),
+                dialog,
+            )
             return
 
         availability.setdefault(day, []).append([start, end])
@@ -637,7 +704,12 @@ def teacher_update_from_edit_dialog(
     # Validate complete availability
     availability_validation = Validator.validate_teacher_availability(availability)
     if not availability_validation.is_valid:
-        show_error(f"Teacher availability validation failed:\n\n{availability_validation.get_error_message()}", dialog)
+        show_error(
+            get_translations("teacher_availability_validation_failed").format(
+                error=availability_validation.get_error_message()
+            ),
+            dialog,
+        )
         return
 
     # Show warnings for availability if any
@@ -705,10 +777,12 @@ def teacher_update_from_edit_dialog(
                     f"Teacher renamed from '{original_teacher_name}' to '{teacher_name}' successfully"
                 )
             else:
-                window.feedback_manager.show_success(f"Teacher '{teacher_name}' updated successfully")
+                window.feedback_manager.show_success(
+                    get_translations("success_teacher_updated").format(name=teacher_name)
+                )
     else:
         logger.error(f"Failed to update teacher: {teacher_name}")
-        show_error("Failed to update teacher data", dialog)
+        show_error(get_translations("error_failed_update_teacher_data"), dialog)
 
 
 def _add_teacher_availability_row_with_data(dialog: QWidget, day: str, start_time: str, end_time: str) -> None:
