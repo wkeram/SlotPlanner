@@ -245,24 +245,53 @@ jobs:
 
           # Windows executable
           if [ -d "slotplanner-windows-$VERSION" ]; then
-            cp "slotplanner-windows-$VERSION/SlotPlanner.exe" "release-assets/SlotPlanner-Windows-v$VERSION.exe"
+            if [ -f "slotplanner-windows-$VERSION/SlotPlanner.exe" ]; then
+              cp "slotplanner-windows-$VERSION/SlotPlanner.exe" "release-assets/SlotPlanner-Windows-v$VERSION.exe"
+              echo "✅ Windows executable prepared"
+            else
+              echo "⚠️  SlotPlanner.exe not found in slotplanner-windows-$VERSION"
+            fi
           fi
 
           # macOS executable and DMG
           if [ -d "slotplanner-macos-$VERSION" ]; then
-            cp "slotplanner-macos-$VERSION/SlotPlanner" "release-assets/SlotPlanner-macOS-v$VERSION"
+            # macOS executable is in dist/ subdirectory
+            if [ -f "slotplanner-macos-$VERSION/dist/SlotPlanner" ]; then
+              cp "slotplanner-macos-$VERSION/dist/SlotPlanner" "release-assets/SlotPlanner-macOS-v$VERSION"
+              chmod +x "release-assets/SlotPlanner-macOS-v$VERSION"
+              echo "✅ macOS executable prepared"
+            else
+              echo "⚠️  dist/SlotPlanner not found in slotplanner-macos-$VERSION"
+            fi
+            # DMG is in root of artifact
             if [ -f "slotplanner-macos-$VERSION/SlotPlanner-macOS.dmg" ]; then
               cp "slotplanner-macos-$VERSION/SlotPlanner-macOS.dmg" "release-assets/SlotPlanner-macOS-v$VERSION.dmg"
+              echo "✅ macOS DMG prepared"
+            else
+              echo "⚠️  SlotPlanner-macOS.dmg not found in slotplanner-macos-$VERSION"
             fi
           fi
 
           # Linux executable
           if [ -d "slotplanner-linux-$VERSION" ]; then
-            cp "slotplanner-linux-$VERSION/SlotPlanner" "release-assets/SlotPlanner-Linux-v$VERSION"
+            if [ -f "slotplanner-linux-$VERSION/SlotPlanner" ]; then
+              cp "slotplanner-linux-$VERSION/SlotPlanner" "release-assets/SlotPlanner-Linux-v$VERSION"
+              chmod +x "release-assets/SlotPlanner-Linux-v$VERSION"
+              echo "✅ Linux executable prepared"
+            else
+              echo "⚠️  SlotPlanner not found in slotplanner-linux-$VERSION"
+            fi
           fi
 
+          echo ""
           echo "Release assets prepared:"
           ls -la release-assets/
+
+          # Ensure we have at least one asset
+          if [ ! "$(ls -A release-assets 2>/dev/null)" ]; then
+            echo "❌ Error: No release assets were prepared"
+            exit 1
+          fi
 
       - name: Generate release notes
         id: release-notes
