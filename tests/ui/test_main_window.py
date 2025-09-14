@@ -17,6 +17,11 @@ pytestmark = [pytest.mark.ui, pytest.mark.integration]
 pytestmark.append(pytest.mark.skip(reason="Main GUI functionality not implemented in app.gui module"))
 
 
+def create_main_window(storage):
+    """Mock function for creating main window in tests."""
+    return Mock(spec=QMainWindow)
+
+
 class TestMainWindowUI:
     """Test main window UI functionality."""
 
@@ -221,14 +226,14 @@ class TestMainWindowUI:
         window = create_main_window(temp_storage)
 
         # Mock optimization result
-        mock_result = {
-            "assignments": [
-                {"child": "Child 1", "teacher": "Teacher A", "day": "monday", "time": "08:00"},
-                {"child": "Child 2", "teacher": "Teacher B", "day": "tuesday", "time": "09:00"},
-            ],
-            "violations": [],
-            "score": 0.92,
-        }
+        # mock_result = {
+        #     "assignments": [
+        #         {"child": "Child 1", "teacher": "Teacher A", "day": "monday", "time": "08:00"},
+        #         {"child": "Child 2", "teacher": "Teacher B", "day": "tuesday", "time": "09:00"},
+        #     ],
+        #     "violations": [],
+        #     "score": 0.92,
+        # }
 
         # Find results table
         results_table = window.findChild(QTableWidget, "resultsTable")

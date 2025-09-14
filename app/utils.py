@@ -63,7 +63,7 @@ def get_translations(message_key: str) -> str:
                 translations = json.load(f)
                 if "en" in translations and message_key in translations["en"]:
                     return translations["en"][message_key]
-        except:
+        except Exception:
             pass
         # Use hardcoded defaults as final fallback
         return default_translations.get(message_key, f"Missing translation: {message_key}")
