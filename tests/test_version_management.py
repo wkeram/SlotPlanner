@@ -325,17 +325,27 @@ class TestVersionIntegration:
 
         main_version = version_data["version"]
 
-        # Check if version appears in other files (when they exist)
-        files_to_check = [
-            ("app/version.py", f'VERSION = "{main_version}"'),
-            ("pyproject.toml", f'version = "{main_version}"'),
-        ]
+        # Check app/version.py can dynamically load the correct version
+        try:
+            import sys
 
-        for file_path, _expected_pattern in files_to_check:
-            file_obj = Path(file_path)
-            if file_obj.exists():
-                with open(file_obj, encoding="utf-8") as f:
-                    content = f.read()
-                    # For now, just check if the version appears somewhere
-                    # Can be made more strict later
-                    assert main_version in content, f"Version {main_version} not found in {file_path}"
+            app_path = Path("app")
+            if app_path.exists() and str(app_path.absolute()) not in sys.path:
+                sys.path.insert(0, str(app_path.absolute()))
+
+            from app.version import get_version
+
+            loaded_version = get_version()
+            assert (
+                loaded_version == main_version
+            ), f"Version mismatch: version.json has {main_version}, app.version loads {loaded_version}"
+        except ImportError:
+            pytest.skip("app.version module not found or not importable")
+
+        # Check pyproject.toml for version consistency if it exists
+        pyproject_file = Path("pyproject.toml")
+        if pyproject_file.exists():
+            with open(pyproject_file, encoding="utf-8") as f:
+                content = f.read()
+                # For pyproject.toml, we expect the version to be hardcoded
+                assert main_version in content, f"Version {main_version} not found in pyproject.toml"
