@@ -342,10 +342,14 @@ class TestVersionIntegration:
         except ImportError:
             pytest.skip("app.version module not found or not importable")
 
-        # Check pyproject.toml for version consistency if it exists
+
+        # Check pyproject.toml uses dynamic versioning (this project uses dynamic version loading)
         pyproject_file = Path("pyproject.toml")
         if pyproject_file.exists():
             with open(pyproject_file, encoding="utf-8") as f:
                 content = f.read()
-                # For pyproject.toml, we expect the version to be hardcoded
-                assert main_version in content, f"Version {main_version} not found in pyproject.toml"
+                # For this project, pyproject.toml should use dynamic versioning
+                assert 'dynamic = ["version"]' in content, "pyproject.toml should use dynamic versioning"
+                assert (
+                    'version = {attr = "app.version.__version__"}' in content
+                ), "pyproject.toml should load version from app.version"
