@@ -187,11 +187,7 @@ def results_export_pdf(window: QWidget, storage: Storage) -> None:
 
     def _export_pdf():
         try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-            from reportlab.lib.units import inch
-            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+            from reportlab.platypus import SimpleDocTemplate  # noqa: F401
         except ImportError:
             show_error(
                 "ReportLab is not installed. PDF export requires ReportLab.\n\n"
@@ -658,7 +654,11 @@ def generate_schedule_pdf(data, filename):
 
     # Title
     title_style = ParagraphStyle(
-        "CustomTitle", parent=styles["Heading1"], fontSize=24, spaceAfter=30, alignment=1  # Center
+        "CustomTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=1,  # Center
     )
     story.append(Paragraph("SlotPlanner - Weekly Schedule", title_style))
     story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
