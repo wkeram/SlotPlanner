@@ -101,8 +101,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y xvfb libxcb1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libegl1-mesa libgl1-mesa-glx
-        continue-on-error: true
+          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0
+        continue-on-error: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -121,17 +121,15 @@ jobs:
       - name: Update version
         run: uv run python scripts/version-manager.py set "${{ needs.validate-version.outputs.version }}" --no-interactive
 
-      - name: Run tests
-        run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            xvfb-run -a uv run python tests/test_runner.py optimizer
-          else
-            uv run python tests/test_runner.py fast
-          fi
+      - name: Run tests (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a uv run python tests/test_runner.py optimizer
         env:
-          QT_QPA_PLATFORM: ${{ matrix.os == 'ubuntu-latest' && 'offscreen' || '' }}
-          DISPLAY: ${{ matrix.os == 'ubuntu-latest' && ':99' || '' }}
-        continue-on-error: false
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Run tests (Windows/macOS)
+        if: matrix.os != 'ubuntu-latest'
+        run: uv run python tests/test_runner.py fast
 
       - name: Run linting
         run: |
